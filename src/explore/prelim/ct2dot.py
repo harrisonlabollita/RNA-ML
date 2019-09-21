@@ -2,8 +2,29 @@ import numpy as np
 import glob, sys, os
 import time
 
-dir = '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/explore/seed_structures/'
-new_dir = '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/code/doNotTouch/'
+
+
+####################################################################################################################################################################
+#  ATTENTION DO NOT RUN THIS CODE!                                                                                                                                #
+#  The commited code was intended to run once. The purpose of this code is to remove 2200 sequences from our main sequences to reserve for testing our m           #
+#  machine learning architectures at the very end of the process.                                                                                                  #
+#                                                                                                                                                                  #
+#                                                                                                                                                                  #
+# seq_files = os.listdir('/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/explore/seed_structures/') #
+# dir = '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/explore/seed_structures/'                   #
+# new_dir = '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/code/doNotTouch/'                       #                                                                                                                                                   #
+# condition = 2200                                                                                                                                                 #
+# iter = 0                                                                                                                                                         #
+# for file in seq_files:                                                                                                                                           #
+#    name = file                                                                                                                                                   #
+#    if iter < condition:                                                                                                                                          #
+#        x = np.random.random()                                                                                                                                    #
+#        if x < 0.3:                                                                                                                                               #
+#            os.rename(dir + name, new_dir + name)                                                                                                                 #
+#            iter += 1                                                                                                                                             #
+# print('Removed %d files from seed_structures to doNotTouch!' %(iter))                                                                                            #
+####################################################################################################################################################################
+
 
 def str_append(s):
     output = ''
@@ -34,20 +55,47 @@ def readFile(file):
             dots += str_append(s)
     return seq, dots
 
+seq_files = glob.glob('/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/explore/seed_structures/*')
 
-seq_files = os.listdir('/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/explore/seed_structures/')
+sequences = []
+dotbrackets = []
+bonds = []
+strandLengths = []
 
-# There are approximately 44000 sequences in our dataset. We wish to isolate 5% of our data to use for pure testing.
-# Therefore we will select 2200 sequences to remove from our dataset.
-
-
-condition = 2200
-iter = 0
+start = time.time()
 for file in seq_files:
-    name = file
-    if iter < condition:
-        x = np.random.random()
-        if x < 0.3:
-            os.rename(dir + name, new_dir + name)
-            iter += 1
-print('Removed %d files from seed_structures to doNotTouch!' %(iter))
+
+    seq, dots = readFile(file)  # Read in file with sequence
+    sequences.append(seq)       # append the sequence to an array
+    dotbrackets.append(dots)    # append the dotBracket rep to an array
+    strandLengths.append(len(seq))  # append the length of that sequence to an array
+
+    bond = 0
+    for i in range(len(dots)):
+        if dots[i] != '.':
+            bond += 1
+
+    bond /= 2.0
+    bonds.append(bond)
+
+
+strandLengths = np.array(strandLengths)
+end = time.time()
+
+print('Processed %d strands in %0.2f seconds' %(len(strandLengths), end - start))
+print("Shortest strand:", min(strandLengths))
+print("Longest strand:", max(strandLengths))
+print("Strands with length < 1000:", len(np.where(strandLengths[:]<1000)[0]))
+print("Length mean:", np.mean(strandLengths))
+print("Length std:", np.std(strandLengths))
+print("Average bonds:", np.mean(bonds))
+
+with open('/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/code/sequences.txt', 'w') as f:
+    for seq in sequences:
+        f.write('%s\n' %(seq))
+f.close()
+
+with open('/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/code/dotbrackets.txt', 'w') as f:
+    for dot in dotbrackets:
+        f.write('%s\n' %(dot))
+f.close()
