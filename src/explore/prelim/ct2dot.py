@@ -1,3 +1,8 @@
+# Convert the data files form the CT format to DOT format.
+# Remove 5% of the sequences for testing
+# Make text files containing the training data
+
+
 import numpy as np
 import glob, sys, os
 import time
