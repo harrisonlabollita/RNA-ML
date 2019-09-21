@@ -3,8 +3,9 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import time
+import torch_model as Net
 
-def Loss(net, learning_rate):
+def Loss():
     loss = nn.CrossEntropyLoss()
     return loss
 
@@ -24,7 +25,7 @@ def train(convNet, batchSize, Epochs, LearningRate):
 
     # Create loss and optimizer functions
 
-    loss = Loss(net, learningRate)
+    loss = Loss()
     optimizer = Optimizer(net, learningRate)
 
     trainingStartTime = time.time()
@@ -73,3 +74,5 @@ def train(convNet, batchSize, Epochs, LearningRate):
 
 
         print('Training finished in {:.2f}s'.format(time.time() - trainingStartTime))
+
+convNet = Net()

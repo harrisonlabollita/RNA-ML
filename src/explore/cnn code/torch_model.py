@@ -14,16 +14,16 @@
 
 # Input Layer Dimensions: (batchSize, 1, 30, 30)
 # Convolution Layer 1: (in_channels = 1, out_channels = 16, kernel_size = 3, stride = 1)
-#             Output Shape: (batchSize 16, 27, 27)
+#             Output Shape: (batchSize, 16, 27, 27)
 # Convolution Layer 2: (in_channels = 15, out_channels = 16, kernel_size = 3, stride = 1)
 #             Output Shape: (batchSize, 16, 24, 24)
 # There are batchSize * 16 * 24 * 24 parameters so reshape to (3072, 30)
 # Hidden Layer 1: (3072, 30)
-#             OutputShape: (30, 3072)
+#             OutputShape: (4096, 72000)
 # Hidden Layer 2: (30, 30)
-#             OutputShape: (30, 30)
+#             OutputShape: (4096, 4096)
 # Hidden Layer 3: (30, 3)
-#              OutputShape: (30, 3)
+#              OutputShape: (4096, 3)
 
 
 import numpy as np
@@ -71,3 +71,7 @@ class rnaConvNet(torch.nn.Module):
         out = self.fullyConnect2(out)
         out = self.fullyConnect3(out)
         return out
+
+H = torch.rand(
+test = rnaConvNet()
+out = test(H)
