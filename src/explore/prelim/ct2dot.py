@@ -48,11 +48,6 @@ for file in seq_files:
     if iter < condition:
         x = np.random.random()
         if x < 0.3:
-            os.rename(dir + file, new_dir + file)
+            os.rename(dir + name, new_dir + name)
             iter += 1
-print('Removed %d files from seed_structures to doNotTouch!' %(len(doNotTouch)))
-
-sequences = []
-strandLengths = []
-dotBrackets= []
-bonds = []
+print('Removed %d files from seed_structures to doNotTouch!' %(iter))
