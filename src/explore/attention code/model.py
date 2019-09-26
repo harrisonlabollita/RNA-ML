@@ -28,7 +28,7 @@ class RNNEncoder(torch.nn.Module):
                  lstm_dropout=0.5,
                  bidirectional=True,
                  use_attention=False,
-                 seq_len=30,
+                 seq_len=30, #written for sequences with length 30
                  is_final_output=False):
         super().__init__()
         self.src_embed = torch.nn.Embedding(num_embed, embed_dim)

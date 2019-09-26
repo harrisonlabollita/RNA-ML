@@ -12,7 +12,6 @@ def Loss():
 def Optimizer(net, learningRate):
     optimizer = optim.Adam(net.parameters(), learningRate)
 
-
 def train(convNet, batchSize, Epochs, LearningRate):
 
     # Fancy intro to net
@@ -74,5 +73,3 @@ def train(convNet, batchSize, Epochs, LearningRate):
 
 
         print('Training finished in {:.2f}s'.format(time.time() - trainingStartTime))
-
-convNet = Net()
