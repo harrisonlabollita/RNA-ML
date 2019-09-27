@@ -24,7 +24,6 @@ class rnaConvNet(torch.nn.Module):
         self.convLayer2 = torch.nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1)
         self.pool2 = torch.nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
 
-
         self.fullyConnect1 = torch.nn.Linear( 16*200, self.seq_length)
 
         self.fullyConnect2 = torch.nn.Linear(self.seq_length, self.seq_length)
