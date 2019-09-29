@@ -6,21 +6,59 @@
 import numpy as np
 import rna2matrix as matrix
 import torch
+import csv
 
 def getRNA(filename, max_seq_length):
+
+    if max_seq_length != 0:
+       sequences = []
+       with open(filename) as f:
+            for line in f:
+                line = line.rstrip('\n')
+                if len(line) <= max_seq_length:
+                   seq = []
+                   diff = int(max_seq_length - len(line))
+                   for char in line:
+                       seq.append(str(char))
+                   for i in range(len(seq), len(seq) + diff):
+                       seq.append(0)
+                   sequences.append(seq)
+       return sequences
+
+    elif max_seq_length == 0:
+        with open(filename) as f:
+            next(f)
+            sequs = csv.reader(f)
+            data = []
+            for seq in sequs:
+                data.append(seq)
+            seq, dot = getData(data)
+
+        return seq, np.array(dot)
+
+def getData(data):
     sequences = []
-    with open(filename) as f:
-        for line in f:
-            line = line.rstrip('\n')
-            if len(line) <= max_seq_length:
-                seq = []
-                diff = int(max_seq_length - len(line))
-                for char in line:
-                    seq.append(str(char))
-                for i in range(len(seq), len(seq) + diff):
-                    seq.append(0)
-                sequences.append(seq)
-    return sequences
+    dotbrackets = []
+    for i in range(len(data)):
+
+        sequences.append(data[i][0])
+
+        bras = []
+
+        for j in range(len(data[i][1])):
+
+            if data[i][1][j] == '(':
+                bras.append([1,0,0])
+
+            elif data[i][1][j] == ')':
+                bras.append([0,1,0])
+
+            else:
+                bras.append([0,0,1])
+
+        bras = np.array(bras).reshape(30, 3)
+        dotbrackets.append(bras)
+    return sequences, dotbrackets
 
 def getDotBrackets(filename, max_seq_length):
     bracket_reps = []
@@ -46,27 +84,38 @@ def getDotBrackets(filename, max_seq_length):
 
 def getTrainingSets(sources, targets, max_seq_length, batch_size):
 
-    seqs = getRNA(sources, max_seq_length)
-    dots = getDotBrackets(targets, max_seq_length)
-
-    if len(seqs) != len(dots):
-        raise 'Source data and target data must be the same length!'
-    else:
+    if targets != 0:
+        seqs = getRNA(sources, max_seq_length)
+        dots = getDotBrackets(targets, max_seq_length)
 
         seqs = matrix.seqs2matrices(seqs)
-        N = int(np.ceil(0.8*len(seqs)))
-        training_source = torch.FloatTensor(seqs[:N])
-        training_source = training_source.view(len(training_source), 1, max_seq_length, max_seq_length)
-        training_target = torch.FloatTensor(dots[:N])
-        valid_source = torch.FloatTensor(seqs[N:])
-        valid_source = valid_source.view(len(valid_source), 1, max_seq_length, max_seq_length)
-        valid_target = torch.FloatTensor(seqs[N:])
 
-        train_set = [training_source, training_target]
-        test_set = [valid_source, valid_target]
+        N = int(0.8* len(seqs))
 
+        seqs = torch.from_numpy(seqs).float()
+        dots = torch.from_numpy(dots).float()
 
-        train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True)
-        test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=True)
+        training_set = torch.utils.data.TensorDataset(seqs[0:N], dots[0:N])
+        testing_set = torch.utils.data.TensorDataset(seqs[N+1:], dots[N+1:])
 
-    return train_loader, test_loader
+        train_loader = torch.utils.data.DataLoader(training_set, batch_size=batch_size, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(testing_set, batch_size=batch_size, shuffle=True)
+
+        return train_loader, test_loader
+
+    elif targets == 0:
+
+        seqs, dots = getRNA(sources, 0)
+        seqs = matrix.seqs2matrices(seqs)
+
+        seqs = torch.from_numpy(seqs).float()
+        dots = torch.from_numpy(dots).float()
+
+        N = int(0.8*len(seqs))
+
+        training_set = torch.utils.data.TensorDataset(seqs[0:N], dots[0:N])
+        testing_set = torch.utils.data.TensorDataset(seqs[N+1:len(seqs)], dots[N+1:len(dots)])
+
+        train_loader = torch.utils.data.DataLoader(training_set, batch_size=batch_size, shuffle=True)
+        test_loader = torch.utils.data.DataLoader(testing_set, batch_size=batch_size, shuffle=True)
+        return train_loader, test_loader

@@ -2,7 +2,6 @@
 # Author: Harrison LaBollita
 # Version: 2.0
 
-
 import numpy as np
 import torch
 import torchvision
@@ -13,9 +12,11 @@ import torch.nn.functional as F
 class rnaConvNet(torch.nn.Module):
 
     def __init__(self, seq_length, num_classes, batch_size):
+
         self.batch_size = batch_size
-        self.seq_length = seq_length # pass in the rna length
+        self.seq_length = seq_length
         self.num_classes = num_classes
+
         super(rnaConvNet, self).__init__()
 
         self.convLayer1 = torch.nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1)
@@ -24,11 +25,13 @@ class rnaConvNet(torch.nn.Module):
         self.convLayer2 = torch.nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1)
         self.pool2 = torch.nn.MaxPool2d(kernel_size=2, stride=1, padding=0)
 
-        self.fullyConnect1 = torch.nn.Linear( 16*200, self.seq_length)
+        self.fullyConnect1 = torch.nn.Linear( 16*self.seq_length, self.seq_length)
 
         self.fullyConnect2 = torch.nn.Linear(self.seq_length, self.seq_length)
+
         self.fullyConnect3 = torch.nn.Linear(self.seq_length, self.num_classes)
-        self.softmax = torch.nn.Softmax()
+
+
 
 
     def forward(self, x):
@@ -50,6 +53,6 @@ class rnaConvNet(torch.nn.Module):
         out = F.relu(self.fullyConnect2(out))
 
         # Output size = (batch_size, seq_length, num_classes)
-        out = self.softmax((self.fullyConnect3(out)))
+        out = self.fullyConnect3(out)
 
         return out

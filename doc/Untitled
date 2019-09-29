@@ -1,0 +1,29 @@
+Pytorch is already available on the Agave cluster through the anaconda/py2 and anaconda/py3 modules, depending on the version you desire.
+
+In anaconda/py2, there's the pytorch environment:
+
+$ module load anaconda/py2
+$ conda env list
+# conda environments:
+#
+...
+additional environments omitted for space, such as tensorflow, caffe, etc.
+pytorch                  /packages/7x/anaconda2/5.2.0/envs/pytorch
+...
+$ source activate pytorch
+
+In anaconda/py3, there's additional pytorch environments:
+
+$ module load anaconda/py3
+$ conda env list
+# conda environments:
+#
+...
+additional environments omitted for space, such as tensorflow, caffe, etc.
+pytorch                  /packages/7x/anaconda3/5.3.0/envs/pytorch
+pytorch-1.20             /packages/7x/anaconda3/5.3.0/envs/pytorch-1.20
+pytorch-gpu              /packages/7x/anaconda3/5.3.0/envs/pytorch-gpu
+...
+
+$ source activate pytorch-gpu
+(pytorch-gpu) $

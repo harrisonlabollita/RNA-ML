@@ -1,31 +1,44 @@
 import torch
 import torch.optim as optim
+from torch.autograd import Variable
 import numpy as np
 import time
 import torch_model as rnaConvNet
 import load_data as load
 
-sources = '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/code/sequences.txt'
-targets = '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/code/dotbrackets.txt'
+
+#sources = '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/code/sequences.txt'
+#targets = '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/code/dotbrackets.txt'
+
+sources = '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/code/RNA_data_set.csv'
+targets = 0
+max_seq_length = 30
+batch_size = 100
+num_classes = 3
+epochs = 100
+learning_rate = 1e-4
 
 
 def Loss():
-    loss = torch.nn.CrossEntropyLoss()
+    loss = torch.nn.BCEWithLogitsLoss()
     return loss
 
 def Optimizer(net, learningRate):
     optimizer = optim.Adam(net.parameters(), learningRate)
+    return optimizer
 
 def train(convNet, batch_size, Epochs, learningRate):
-
-    # Fancy intro to net
+    print('-'*20)
     print("HYPERPARAMETERS")
-    print("batchSize = ", batch_size)
+    print('-'*20)
+    print("Batch size = ", batch_size)
     print("Epochs = ", Epochs)
-    print("LearningRate = ", learningRate)
+    print("Learning rate = ", learningRate)
+    print('-'*20)
 
     # function to call in data
-    train_loader, test_loader = load.getTrainingSets(sources, targets, 30, batch_size)
+    train_loader, test_loader = load.getTrainingSets(sources, targets, max_seq_length, batch_size)
+    print('Load data successful!')
 
     # Create loss and optimizer functions
     loss = Loss()
@@ -34,54 +47,48 @@ def train(convNet, batch_size, Epochs, learningRate):
 
     # Start training
     totalStep = len(train_loader)
-
-
     losses = []
-    accuracies = []
 
     for epoch in range(Epochs):
+
+
         runningLoss = 0.0
         startTime = time.time()
         totalTrainLoss = 0
 
         for i, (src, tgt) in enumerate(train_loader):
 
-            outputs = convNet(srcs)
-            lossSize = loss(outputs, tgts)
-            losses.append(loss.item())
+            src = src.view(batch_size, 1, max_seq_length, max_seq_length)
+
+            src = Variable(src)
+            tgt = Variable(tgt)
+
+            outputs = convNet(src)
+            loss_size = loss(outputs, tgt)
+            losses.append(loss_size.item())
+
             optimizer.zero_grad()
-            lossSize.backward()
+            loss_size.backward()
             optimizer.step()
 
-            total = tgt.size(0)
-            _, predicted = torch.max(outputs.data, 1)
-            correct = (predicted == tgts).sum().item()
-            accuracies.append(correct/total)
+            runningLoss += loss_size.item()
+            totalTrainLoss += loss_size.item()
 
-            runningLoss += lossSize.data[0]
-            totalTrainLoss += lossSize.data[0]
-
-            if (i+1) %(100) == 0:
-                print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}, Accuracy: {:.2f}%'
-                            .format(epoch + 1, Epochs, i+1, totalStep, loss.item(),
-                            (correct/total)*100))
-
-        totalValLoss = 0
-
-        for j in range(len(test_src)):
-            tst_in = test_src[j]
-            test_out  = test_tgt[j]
-            valOutputs = convNet(tst_in)
-            valLossSize = loss(valOutputs, tst_out)
-            totalValLoss += valLossSize.data[0]
-            print('Validation Loss: {:.2f}'.format(time.time() - trainingStartTime))
+        print('Epoch [{}/{}], Loss: {:.4f}, Time: {:0.2f}s'.format(epoch + 1, Epochs,  loss_size.item(), time.time() - startTime))
 
 
 
-        print('Training finished in {:.2f}s'.format(time.time() - trainingStartTime))
+#        totalValLoss=0
+#
+#        for test, out in test_loader:
+#            test = test.view(batch_size, 1, max_seq_length, max_seq_length)
+#
+#            valOutputs = convNet(test)
+#            valLossSize = loss(valOutputs, out)
+#            totalValLoss += valLossSize.item()
+#
+#            print('Validation Loss: {:.2f}'.format(totalValLoss /len(test_loader)))
+    return losses
 
-max_seq_length = 30
-batch_size = 100
-num_class = 3
-model =rnaConvNet.rnaConvNet(max_seq_length, num_class, batch_size)
-train(model, batch_size, 10, 0.1)
+model = rnaConvNet.rnaConvNet(max_seq_length, num_classes, batch_size)
+train(model, batch_size, epochs, learning_rate)
