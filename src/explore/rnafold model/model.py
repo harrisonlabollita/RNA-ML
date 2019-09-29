@@ -8,15 +8,19 @@ import torch.nn.functional as F
 
 class foldNet(torch.nn.Module):
 
-    def __init__(self, seq_length, hidden_size):
+    def __init__(self, seq_length, hidden_size, batch_size):
+
         self.hidden_size = hidden_size
         self.seq_length = seq_length
+        self.batch_size = batch_size
 
         super(foldNet, self).__init__()
 
-        self.fullyConnect1 = torch.nn.Linear(self.seq_length, self.hidden_size)
-        self.fullyConnect2 = torch.nn.Linear(self.hidden_size, self.hidden_size)
-        self.fullyConnect3 = torch.nn.Linear(self.hidden_size, self.seq_length)
+        self.fullyConnect1 = torch.nn.Linear(self.batch_size, self.seq_length*3, self.hidden_size)
+
+        self.fullyConnect2 = torch.nn.Linear(self.hidden_size, self.seq_length, self.batch_size)
+
+        self.fullyConnect3 = torch.nn.Linear(self.batch_size, self.seq_length, 3)
 
 
     def forward(self, x):
@@ -29,9 +33,18 @@ class foldNet(torch.nn.Module):
 
 
 def Loss():
-    loss = torch.nn.MSELoss()
+    loss = torch.nn.BCEWithLogitsLoss()
     return loss
 
 def Optimizer(net, learningRate):
     optimizer = optim.Adam(net.parameters(), learningRate)
     return optimizer
+
+test = torch.rand(100, 30, 3)
+test = test.view(100, -1)
+
+net = foldNet(30, 150, 100 )
+
+out = net(test)
+
+print(out.size())

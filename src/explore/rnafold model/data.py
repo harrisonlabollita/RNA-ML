@@ -4,9 +4,9 @@ import torch
 
 #       Key
 # --------------
-#     ( ---> 0
-#     ) ---> 1
-#     . ---> 2
+#     ( ---> [1, 0, 0]
+#     ) ---> [0, 1, 0]
+#     . ---> [0, 0, 1]
 # ----------------
 
 def strAppend(s):
@@ -18,12 +18,14 @@ def dot2num(array):
     new_array = []
     for elem in array:
         if elem == '(':
-            new_array.append(0)
+            new_array.append([1, 0, 0])
         elif elem == ')':
-            new_array.append(1)
+            new_array.append([0, 1, 0]
         else:
-            new_array.append(2)
-    return np.array(new_array)
+            new_array.append([0, 0, 1])
+            
+    new_array = np.array.reshape(len(array), 3)
+    return new_array
 
 def num2dot(array):
     dot = ''
