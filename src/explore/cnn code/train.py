@@ -13,6 +13,7 @@ import plot as p
 
 sources = '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/code/RNA_data_set.csv'
 targets = 0
+
 max_seq_length = 30
 batch_size = 100
 num_classes = 3

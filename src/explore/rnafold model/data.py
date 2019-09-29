@@ -1,74 +1,99 @@
 import numpy as np
-import RNA 
-import torch 
+import RNA
+import torch
 
+#       Key
+# --------------
+#     ( ---> 0
+#     ) ---> 1
+#     . ---> 2
+# ----------------
 
 def strAppend(s):
     output = ''
     output += s
     return output
- 
+
 def dot2num(array):
     new_array = []
     for elem in array:
-	if elem == '(':
-	   new_array.append(0)
+        if elem == '(':
+            new_array.append(0)
         elif elem == ')':
-           new_array.append(1)
+            new_array.append(1)
         else:
-           new_array.append(2)
+            new_array.append(2)
     return np.array(new_array)
 
 def num2dot(array):
     dot = ''
     for elem in array:
         if elem == 0:
-           dot += strAppend('(')
+            dot += strAppend('(')
         elif elem == 1:
-           dot += strAppend(')')
-        else: 
-           dot += strAppend('.')
-     return dot
-
+            dot += strAppend(')')
+        else:
+            dot += strAppend('.')
+    return dot
 
 def getRNA(filename):
-    # input: file containing RNA sequences 
+    # input: file containing RNA sequences
     # output: array of RNA sequences
-    sequences = [] 
+    sequences = []
     with open(filename, 'r') as f:
-	for line in f.readlines():
-	    line = line.strip('\n')
+        for line in f.readlines():
+            line = line.strip('\n')
             sequences.append(line)
     return np.array(sequences)
-
 
 def getDotBracket(filename):
     # input: file containing dot bracket representation
     # output: array of dot brackets
     dotbrackets = []
     with open(filename, 'r') as f:
-         for line in f.readlines():
-	     line = line.strip('\n')
-             dotbrackets.append(line)
+        for line in f.readlines():
+            line = line.strip('\n')
+            dotbrackets.append(line)
     return np.array(dotbrackets)
 
-def RNAfoldPredict(sequences):
-    # input: array of RNA sequences 
-    # output: array of predictions from RNAfold
-    for seq in sequences:
-        pred = RNA.fold(seq)
-        predictions.append(pred)
-    return np.array(predictions) 
 
-def TrainingSets(file_seq, file_dots):
+def RNAfoldPredict(sequences):
+    # input: array of RNA sequences
+    # output: array of predictions from RNAfold
+    predictions = []
+    for seq in sequences:
+        pred, ener = RNA.fold(seq)
+        predictions.append(pred)
+    return np.array(predictions)
+
+def getTrainingSets(file_seq, file_dots, batch_size):
     # input: filename1, filename2
-    # output: torch datasets 
+    # output: torch datasets
     sequences = getRNA(file_seq)
     predictions = RNAfoldPredict(sequences)
     dotbrackets = getDotBracket(file_dots)
     # convert the dot bracket representation to number representation for training
-    for i in range(len(predicitons)):
-        predictions[i] = dot2num(predictions[i])
+
+    temp_pred = []
+    for i in range(len(predictions)):
+        temp_pred.append(dot2num(predictions[i]))
+
+    temp_dot = []
     for i in range(len(dotbrackets)):
-        dotbrackets[i] = dot2num(dotbrackets[i])
-    return training_loader, testing_loader
+        temp_dot.append(dot2num(dotbrackets[i]))
+
+    predictions = np.array(temp_pred)
+
+    dotbrackets = np.array(temp_dot)
+
+    predictions = torch.from_numpy(predictions).float()
+    dotbrackets = torch.from_numpy(dotbrackets).float()
+
+    N = int(0.8*len(predictions))
+
+    training_set = torch.utils.data.TensorDataset(predictions[0:N], dotbrackets[0:N])
+    testing_set = torch.utils.data.TensorDataset(predictions[N+1:len(predictions)], dotbrackets[N+1:len(dotbrackets)])
+
+    train_loader = torch.utils.data.DataLoader(training_set, batch_size=batch_size, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(testing_set, batch_size=batch_size, shuffle=True)
+    return train_loader, test_loader

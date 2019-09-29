@@ -1,6 +1,6 @@
 # CONVOLUTIONAL NEURAL NETWORK IN PYTORCH
 # Author: Harrison LaBollita
-# Version: 2.0
+# Version: 3.0
 
 import numpy as np
 import torch
