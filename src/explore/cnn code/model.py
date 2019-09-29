@@ -11,9 +11,7 @@ import torch.nn.functional as F
 
 class rnaConvNet(torch.nn.Module):
 
-    def __init__(self, seq_length, num_classes, batch_size):
-
-        self.batch_size = batch_size
+    def __init__(self, seq_length, num_classes):
         self.seq_length = seq_length
         self.num_classes = num_classes
 
@@ -31,9 +29,6 @@ class rnaConvNet(torch.nn.Module):
 
         self.fullyConnect3 = torch.nn.Linear(self.seq_length, self.num_classes)
 
-
-
-
     def forward(self, x):
         # Output size = (batch_size, 16, seq_length +1 , seq_length + 1 )
         out = F.relu(self.convLayer1(x))
@@ -42,9 +37,9 @@ class rnaConvNet(torch.nn.Module):
         # Output size = (batch_size, 16, seq_length, seq_length)
         out = F.relu(self.convLayer2(out))
         out = self.pool2(out)
-
+        shape = out.size()
         # Output size = (batch_size, seq_length, seq_length*16)
-        out = out.view(self.batch_size, self.seq_length, -1)
+        out = out.view(shape[0], self.seq_length, -1)
 
         # Output size = (batch_size, seq_length, seq_length)
         out = F.relu(self.fullyConnect1(out))
