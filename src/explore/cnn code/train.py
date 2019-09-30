@@ -1,5 +1,4 @@
 import torch
-import torch.optim as optim
 from torch.autograd import Variable
 import numpy as np
 import time
@@ -17,17 +16,10 @@ targets = 0
 max_seq_length = 30
 batch_size = 100
 num_classes = 3
-epochs = 50
-learning_rate = 1e-4
+epochs = 100
+learning_rate = 1e-3
 
 
-def Loss():
-    loss = torch.nn.BCEWithLogitsLoss()
-    return loss
-
-def Optimizer(net, learningRate):
-    optimizer = optim.Adam(net.parameters(), learningRate)
-    return optimizer
 
 def train(convNet, batch_size, Epochs, learningRate):
     print('-'*30)
@@ -36,16 +28,14 @@ def train(convNet, batch_size, Epochs, learningRate):
     print("Batch size = ", batch_size)
     print("Epochs = ", Epochs)
     print("Learning rate = ", learningRate)
-    print("Optimizer = Adam")
-    print("Loss Funciton = Binary Cross Entropy with Logits")
     print('-'*30)
 
     # function to call in data
     train_loader, test_loader = load.getTrainingSets(sources, targets, max_seq_length, batch_size)
 
     # Create loss and optimizer functions
-    loss = Loss()
-    optimizer = Optimizer(convNet, learningRate)
+    loss = rnaConvNet.Loss()
+    optimizer = rnaConvNet.Optimizer(convNet, learningRate)
     trainingStartTime = time.time()
 
     # Start training
@@ -67,6 +57,8 @@ def train(convNet, batch_size, Epochs, learningRate):
             tgt = Variable(tgt)
 
             outputs = convNet(src)
+
+
             loss_size = loss(outputs, tgt)
             losses.append(loss_size.item())
 
@@ -96,4 +88,4 @@ model = rnaConvNet.rnaConvNet(max_seq_length, num_classes)
 
 train_loss, validation_loss = train(model, batch_size, epochs, learning_rate)
 
-p.plotmodel(train_loss, validation_loss, 'CNN Model')
+p.plotmodel(epochs, train_loss, validation_loss, 'CNN Model')

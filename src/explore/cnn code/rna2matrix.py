@@ -36,8 +36,8 @@ def RNAmatrix(seq):
                         weight += np.exp(-0.5 * beta * beta) * P
                         beta +=1
             rnaMatrix[i][j] = weight
-    rnaMatrix /= np.amax(rnaMatrix)
     rnaMatrix = np.array(rnaMatrix)
+    rnaMatrix /= np.amax(rnaMatrix)
     return rnaMatrix
 
 def seqs2matrices(sequences):

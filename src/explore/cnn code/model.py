@@ -4,6 +4,7 @@
 
 import numpy as np
 import torch
+import torch.optim as optim
 import torchvision
 import torch.nn.functional as F
 
@@ -29,6 +30,8 @@ class rnaConvNet(torch.nn.Module):
 
         self.fullyConnect3 = torch.nn.Linear(self.seq_length, self.num_classes)
 
+        self.softmax = torch.nn.Softmax(dim = 2)
+
     def forward(self, x):
         # Output size = (batch_size, 16, seq_length +1 , seq_length + 1 )
         out = F.relu(self.convLayer1(x))
@@ -48,6 +51,17 @@ class rnaConvNet(torch.nn.Module):
         out = F.relu(self.fullyConnect2(out))
 
         # Output size = (batch_size, seq_length, num_classes)
-        out = self.fullyConnect3(out)
+        out = self.softmax(self.fullyConnect3(out))
 
         return out
+
+
+
+def Loss():
+    #loss = torch.nn.BCEWithLogitsLoss()
+    loss = torch.nn.BCELoss()
+    return loss
+
+def Optimizer(net, learningRate):
+    optimizer = optim.Adam(net.parameters(), learningRate)
+    return optimizer
