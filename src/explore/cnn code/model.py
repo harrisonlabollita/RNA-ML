@@ -32,6 +32,35 @@ class rnaConvNet(torch.nn.Module):
 
         self.softmax = torch.nn.Softmax(dim = 2)
 
+    def dynamic_adjust(self, x):
+        # x (tensor) is the output of network so it has size (seq_length, 3)
+        # 1. Require that the number of left brackets match the number of right brackets
+        size = x.size()
+        rows = size[0]
+        left_count = 0
+        right_count = 0
+        point_count = 0
+        for i in range(rows):
+            value, index = torch.max(x[i])
+            if index == 0:
+                # [1, 0, 0] which is a left bracket
+                left_count +=1
+            elif index == 1:
+                # [0, 1, 0] which is right bracket
+                righ_count += 1
+            else:
+                # [0, 1, 0] which is a dot bracket
+                point_count +=1
+        if left_count == right_count:
+            # This is a valid prediction
+            return x
+
+        else:
+            new_x = torch.zeros(rows, 3)
+
+
+
+
     def forward(self, x):
         # Output size = (batch_size, 16, seq_length +1 , seq_length + 1 )
         out = F.relu(self.convLayer1(x))

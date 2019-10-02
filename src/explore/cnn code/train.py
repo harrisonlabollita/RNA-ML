@@ -39,7 +39,7 @@ def train(convNet, batch_size, Epochs, learningRate):
     trainingStartTime = time.time()
 
     # Start training
-    totalStep = len(train_loader)
+    #totalStep = len(train_loader)
     losses = []
     val_losses = []
 
@@ -58,16 +58,18 @@ def train(convNet, batch_size, Epochs, learningRate):
 
             outputs = convNet(src)
 
-
             loss_size = loss(outputs, tgt)
-            losses.append(loss_size.item())
+            losses.append(float(loss_size.item()))
 
+            # Delete the target and source variables to free up memory
+	        del src
+	        del tgt
             optimizer.zero_grad()
             loss_size.backward()
             optimizer.step()
 
-            runningLoss += loss_size.item()
-            totalTrainLoss += loss_size.item()
+            #runningLoss += float(loss_size.item())
+            #totalTrainLoss += float(loss_size.item())
 
 
         for i, (pred, real) in enumerate(test_loader):
@@ -78,9 +80,11 @@ def train(convNet, batch_size, Epochs, learningRate):
 
             val_outputs = convNet(pred)
             val_loss_size = loss(val_outputs, real)
-            val_losses.append(val_loss_size)
+            val_losses.append(float(val_loss_size))
+            del pred
+            del real
 
-        print('Epoch: {}/{}, Loss: {:.4f}, Val loss: {:0.4f}, Time: {:0.2f}s'.format(epoch + 1, Epochs,  loss_size.item(), val_loss_size.item(), time.time() - startTime))
+        print('Epoch: {}/{}, Loss: {:.4f}, Val loss: {:0.4f}, Time: {:0.2f}s'.format(epoch + 1, Epochs, float(loss_size.item()), float(val_loss_size.item()), time.time() - startTime))
 
     return losses, val_losses
 
