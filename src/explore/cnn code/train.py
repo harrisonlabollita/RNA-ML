@@ -5,6 +5,7 @@ import time
 import model as rnaConvNet
 import load_data as load
 import plot as p
+import accuracy as acc
 
 
 #sources = '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/code/sequences.txt'
@@ -40,6 +41,8 @@ def train(convNet, batch_size, Epochs, learningRate):
 
     # Start training
     #totalStep = len(train_loader)
+    train_acc = []
+    val_acc = []
     losses = []
     val_losses = []
 
@@ -49,7 +52,9 @@ def train(convNet, batch_size, Epochs, learningRate):
         totalTrainLoss = 0.0
 
         startTime = time.time()
+
         for i, (src, tgt) in enumerate(train_loader):
+            temp_acc_list = []
 
             src = src.view(batch_size, 1, max_seq_length, max_seq_length)
 
@@ -59,20 +64,25 @@ def train(convNet, batch_size, Epochs, learningRate):
             outputs = convNet(src)
 
             loss_size = loss(outputs, tgt)
-            losses.append(float(loss_size.item()))
 
             # Delete the target and source variables to free up memory
-	        del src
-	        del tgt
+            del src
+
             optimizer.zero_grad()
             loss_size.backward()
             optimizer.step()
 
-            #runningLoss += float(loss_size.item())
-            #totalTrainLoss += float(loss_size.item())
+            temp_acc_list.append(np.mean(acc.compute_acc(outputs, tgt)))
 
+            del tgt
+            del outputs
+
+        train_acc.append(np.mean(temp_acc_list))
 
         for i, (pred, real) in enumerate(test_loader):
+
+            temp_val_acc = []
+
             pred = Variable(pred)
             real = Variable(real)
 
@@ -80,16 +90,23 @@ def train(convNet, batch_size, Epochs, learningRate):
 
             val_outputs = convNet(pred)
             val_loss_size = loss(val_outputs, real)
-            val_losses.append(float(val_loss_size))
+
+            temp_val_acc.append(np.mean(acc.compute_acc(val_outputs, real)))
+
             del pred
             del real
 
-        print('Epoch: {}/{}, Loss: {:.4f}, Val loss: {:0.4f}, Time: {:0.2f}s'.format(epoch + 1, Epochs, float(loss_size.item()), float(val_loss_size.item()), time.time() - startTime))
+        val_acc.append(np.mean(temp_val_acc))
+        val_losses.append(float(val_loss_size))
+        losses.append(float(loss_size.item()))
+        print('Epoch: {}/{}, Accuracy: {:0.2f}%, Loss: {:.4f}, Val loss: {:0.4f}, Val Acc: {:0.2f}%, Time: {:0.2f}s'.format(epoch + 1, Epochs, train_acc[epoch]*100, float(loss_size.item()), float(val_loss_size.item()), val_acc[epoch]*100, time.time() - startTime))
 
-    return losses, val_losses
+    history = [train_acc, val_acc, losses, val_losses]
+    return history
 
 model = rnaConvNet.rnaConvNet(max_seq_length, num_classes)
 
-train_loss, validation_loss = train(model, batch_size, epochs, learning_rate)
+history = train(model, batch_size, epochs, learning_rate)
 
-p.plotmodel(epochs, train_loss, validation_loss, 'CNN Model')
+p.plotmodel_loss(epochs, history[2], history[3], 'Model Loss')
+p.plotmodel_acc(epochs, history[0], history[1], 'Model Accuracy')

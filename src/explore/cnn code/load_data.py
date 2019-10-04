@@ -39,7 +39,7 @@ def getRNA(filename, max_seq_length):
 def getData(data):
     sequences = []
     dotbrackets = []
-    for i in range(len(data)-70000):
+    for i in range(len(data)-99000):
 
         sequences.append(data[i][0])
 
