@@ -107,6 +107,6 @@ def train(convNet, batch_size, Epochs, learningRate):
 model = rnaConvNet.rnaConvNet(max_seq_length, num_classes)
 
 history = train(model, batch_size, epochs, learning_rate)
-
+torch.save(model.state_dict(), '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/explore/cnn code/cnn_trained_model.pt')
 p.plotmodel_loss(epochs, history[2], history[3], 'Model Loss')
 p.plotmodel_acc(epochs, history[0], history[1], 'Model Accuracy')
