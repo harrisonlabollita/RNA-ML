@@ -88,4 +88,4 @@ def nussinov(sequence):
     traceback(0,N-1, structure, DP, sequence)
     return write_structure(sequence, structure)
 
-print(nussinov("GAUGCGCAAAAACAUUCCUCAUCACAAUU")[1])
+#print(nussinov("GAUGCGCAAAAACAUUCCUCAUCACAAUU"))
