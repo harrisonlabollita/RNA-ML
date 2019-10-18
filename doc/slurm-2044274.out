@@ -1,0 +1,13 @@
+                                                                 
+                                                                                
+##############################################                                  
+INFORMATION                                                                     
+##############################################                                  
+                                                                                
+You have loaded the base anaconda environment. For specialized environments,    
+you must first enable them with `source activate [env]`.                        
+                                                                                
+For a full list of environments, type `conda env list`                          
+  
+/var/spool/slurmd/job2044274/slurm_script: line 17: 12328 Killed                  python train.py
+slurmstepd: error: Detected 1 oom-kill event(s) in step 2044274.batch cgroup. Some of your processes may have been killed by the cgroup out-of-memory handler.
