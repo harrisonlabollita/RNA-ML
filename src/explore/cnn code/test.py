@@ -5,6 +5,7 @@ import model as rnaConvNet
 import load_data as load
 import nussinov as nussinov
 import RNA
+import matplotlib.pyplot as plt
 
 def getFile(filename):
     array = []
@@ -29,6 +30,8 @@ def out2dot(matrix):
     return out
 
 def testModel(seq, tgt):
+    bad = 0
+    outputs = []
     accuracies = []
     if len(seq) != len(tgt):
         print('Length of files do not match!')
@@ -39,15 +42,14 @@ def testModel(seq, tgt):
         test = test.view(1, 1, 30, 30)
         output = model(test.type('torch.FloatTensor'))
         output = out2dot(output)
+
+        if badPrediction(output) == False:
+            bad += 1
+
+        outputs.append(output)
         accuracies.append(modelAccuracy(output, tgt[i]))
 
-        if i % 500 == 0:
-            print('RNA Fold:', RNA.fold(seq[i])[0])
-            print('Nussinov:', nussinov.nussinov(seq[i]))
-            print('CNN:', output)
-            print('Actual:', tgt[i])
-            print('                ')
-    return np.array(accuracies)
+    return np.array(accuracies), np.array(outputs), bad
 
 def modelAccuracy(pred, tgt):
     count = 0
@@ -56,6 +58,8 @@ def modelAccuracy(pred, tgt):
             count +=1
     count /= len(pred)
     return count
+
+
 
 PATH = '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/explore/cnn code/cnn_trained_model.pt'
 
@@ -66,8 +70,17 @@ model = rnaConvNet.rnaConvNet(30, 3)
 model.load_state_dict(torch.load(PATH))
 model.eval()
 
-accuracies = testModel(test_seq, test_tgt)
+accuracies, outputs = testModel(test_seq, test_tgt)
+
 
 print('Model Accuracy:', np.mean(accuracies))
-print('Best Prediction:', np.max(accuracies))
-print('Worst Prediction:', np.min(accuracies))
+
+plt.figure()
+plt.hist(accuracies, bins ='auto', density= True, histtype = 'bar', rwidth = 0.9, color = 'black', alpha = 0.9, linewidth = 1)
+plt.grid(True, linestyle = ':', linewidth = 1)
+plt.title('CNN Model Histogram')
+plt.xlabel('% of correct predictions/ sequence')
+plt.ylabel('Frequency')
+plt.text(0.4, 3.5, 'Testing on 1000 sequences')
+plt.text(0.4, 3, 'Average: %0.2f' %(np.mean(accuracies)))
+plt.show()

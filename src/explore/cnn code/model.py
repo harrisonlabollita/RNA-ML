@@ -65,6 +65,6 @@ def Loss():
     loss = torch.nn.BCELoss()
     return loss
 
-def Optimizer(net, learningRate):
-    optimizer = optim.Adam(net.parameters(), learningRate)
+def Optimizer(net, learningRate, momentum):
+    optimizer = optim.Adam(net.parameters(), learningRate, [momentum, momentum])
     return optimizer

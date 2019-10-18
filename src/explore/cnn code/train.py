@@ -14,21 +14,27 @@ import accuracy as acc
 sources = '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/code/RNA_data_set.csv'
 targets = 0
 
-max_seq_length = 30
-batch_size = 100
-num_classes = 3
-epochs = 100
-learning_rate = 1e-3
+
+def hyperparameters():
+    lr = [1e-2, 1e-3, 1e-4]
+    mom = [0.5, 0.7, 0.9]
+    batch_size = [30, 50, 100]
+
+    params = [lr[np.random.randint(0,3)], mom[np.random.randint(0,3)], batch_size[np.random.randint(0,3)]]
+
+    return params
 
 
 
-def train(convNet, batch_size, Epochs, learningRate):
+
+def train(convNet, batch_size, Epochs, learningRate, momentum):
     print('-'*30)
     print("  HYPERPARAMETERS  ")
     print('-'*30)
     print("Batch size = ", batch_size)
-    print("Epochs = ", Epochs)
     print("Learning rate = ", learningRate)
+    print("Momentum = ", momentum)
+    print("Epochs = ", Epochs)
     print('-'*30)
 
     # function to call in data
@@ -36,7 +42,7 @@ def train(convNet, batch_size, Epochs, learningRate):
 
     # Create loss and optimizer functions
     loss = rnaConvNet.Loss()
-    optimizer = rnaConvNet.Optimizer(convNet, learningRate)
+    optimizer = rnaConvNet.Optimizer(convNet, learningRate, momentum)
     trainingStartTime = time.time()
 
     # Start training
@@ -104,9 +110,27 @@ def train(convNet, batch_size, Epochs, learningRate):
     history = [train_acc, val_acc, losses, val_losses]
     return history
 
-model = rnaConvNet.rnaConvNet(max_seq_length, num_classes)
 
-history = train(model, batch_size, epochs, learning_rate)
-torch.save(model.state_dict(), '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/explore/cnn code/cnn_trained_model.pt')
-p.plotmodel_loss(epochs, history[2], history[3], 'Model Loss')
-p.plotmodel_acc(epochs, history[0], history[1], 'Model Accuracy')
+
+sessions = 9
+sess = 0
+
+while sess <= sessions:
+    
+    max_seq_length = 30
+    num_classes = 3
+
+    model = rnaConvNet.rnaConvNet(max_seq_length, num_classes)
+    params = hyperparameters()
+
+
+    learning_rate = params[0]
+    momentum = params[1]
+    batch_size = params[2]
+    epochs = 100
+
+    history = train(model, batch_size, epochs, learning_rate, momentum)
+    #torch.save(model.state_dict(), '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/explore/cnn code/cnn_trained_model.pt')
+    p.plotmodel_loss(epochs, history[2], history[3], 'Model Loss')
+    p.plotmodel_acc(epochs, history[0], history[1], 'Model Accuracy')
+    sess+=1
