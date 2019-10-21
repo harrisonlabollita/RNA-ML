@@ -115,21 +115,58 @@ def compatibleStems(matrix, stems):
     for i in range(N_stems):
         for j in range(N_stems):
             if i != j and matrix[i, j] == 1:
-                stemRegion1 = stems[i]
-                stemRegion2 = stems[j]
                 if len(compat_Stems) == 0:
-                    if mutualStems(stemRegion1, stemRegion2):
-                        compat_Stems.append(stemRegion1)
-                    else:
-                        if isCompatible(compat_Stems, stemRegion1):
-                            compat_Stems.append(stemRegion1)
-
+                    s_j = j
+                    compat_Stems.append(stems[i])
+                    compat_Stems.append(stems[j])
+                else:
+                    for k in range(j, N_stems):
+                        if isCompatible(compat_Stems, stems[k]) and s_j > k:
+                            s_j = k
+                            compat_Stems.append(stems[k])
     return compat_Stems
 
+def calculateTransitionRates():
 
+    return rate
 
-#seq = 'CGGUCGGAACUCGAUCGGUUGAACUCUAUC'
-seq = 'GUUAGCACAUCGAGCGGGCAAUAUGUACAU'
+################################# EXAMPLE ######################################
+#                                                                              #
+#                                        8                                     #
+# 0   C     (      16                    A                                     #
+# 1   G     (      15                  /   \                                   #
+# 2   G     (      14               7 A     A  9                               #
+# 3   U     (      13               6  G - U  10                               #
+# 4   C     (      12               5  G - C  11                               #
+# 5   G     (      11               4  C - G  12                               #
+# 6   G     (      10               3  U - A  13                               #
+# 7   A     .      -1               2  G - U  14                               #
+# 8   A     .      -1               1  G - C  15                               #
+# 9   C     .      -1               0  C - G  16                               #
+# 10  U     )       6                      G  17                               #
+# 11  C     )       5                      U  18                               #
+# 12  G     )       4                      U  19                               #
+# 13  A     )       3                      G  20                               #
+# 14  U     )       2                      A  21                               #
+# 15  C     )       1                      A  22                               #
+# 16  G     )       0                      C  23                               #
+# 17  G     .      -1                      U  24                               #
+# 18  U     .      -1                      C  25                               #
+# 19  U     .      -1                      U  26                               #
+# 20  G     .      -1                      A  27                               #
+# 21  A     .      -1                      U  28                               #
+# 22  A     .      -1                      C  29                               #
+# 23  C     .      -1                                                          #
+# 24  U     .      -1                                                          #
+# 25  C     .      -1                                                          #
+# 26  U     .      -1                                                          #
+# 27  A     .      -1                                                          #
+# 28  U     .      -1                                                          #
+# 29  C     .      -1                                                          #
+#                                                                              #
+################################################################################
+
+seq = 'CGGUCGGAACUCGAUCGGUUGAACUCUAUC'
 mat = possible_pairs(seq)
 stems = possible_stems(mat)
 compat = compatiblilityMatrix(stems)
