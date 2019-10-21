@@ -59,7 +59,6 @@ class rnaConvNet(torch.nn.Module):
         return out
 
 
-
 def Loss():
     #loss = torch.nn.BCEWithLogitsLoss()
     loss = torch.nn.BCELoss()

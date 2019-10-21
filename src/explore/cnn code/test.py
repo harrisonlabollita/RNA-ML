@@ -20,7 +20,6 @@ def out2dot(matrix):
     for i in range(len(matrix)):
         val, index = torch.max(matrix[i], 1)
         for i in range(len(index)):
-
             if index[i] == 0:
                 out += '('
             elif index[i] == 1:

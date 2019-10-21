@@ -49,7 +49,6 @@ def update_pair_memory(pair_map, action):
         pair_map[action[1]] = action[1]
     else:
         pair_map[action[0]] = action[0]
-
     return pair_map
 
 def find_possible_pairings(i, sequence):
@@ -61,7 +60,7 @@ def find_possible_pairings(i, sequence):
     if i == 0:
         # then we are at the beginning of the sequence so we need to explore all of the possibilities to the right:
         for j in range(len(sequence)):
-            if j>=4:
+            if j>= 4:
                 if pair(nucl, sequence[j]):
                 # keep track of this pair to be score
                     gamma = np.log(abs(j - i))
@@ -107,4 +106,5 @@ def calculate_Q(i, sequence, pair_map, net):
         # don't pair
         choice_3 = lr * ( actions[2] + cost * calculate_Q(i+1, sequence, pair_map, net))
     decision = [choice1, choice2, choice3]
-    return max(decision)
+    act = max(decision)
+    return
