@@ -10,9 +10,14 @@ import scipy
 #                                     all possible stems,
 #                                     transition rates
 #                                     and probabilities
-# 3. Choose a stem
-#    - This will  be S_0 (structure 0)
-# 2. Monte Carlo Step
+#     - Need to verify a couple of things:
+#           . calculating the transition rate
+#           . sampling from prob distribution
+#           . using the total flux/ partial flux method
+#             but not sure if this is correct
+#           . stopping condition?
+#           . need to add breaking capability
+#  2. Monte Carlo Step
 #    - Use random numbers to determine the next possible move to make based off of probaility and transition rate
 #    - Move must be compatible with the current structure (S_0)
 # 3. Update
@@ -22,6 +27,11 @@ import scipy
 # 4. Iterate
 #    - Repeat Monte Carlo step until simulation time runts out
 ################################################################################
+
+############################## HELPER FUNCTIONS ################################
+# Functions taken from RFE Landscape and used independuntly from the calculate
+# FE landscapre funciton in the RFE class.
+
 def bondFreeEnergiesRNARNA():
     #define the RNA/RNA bond enthalpy and entropy arrays
 
@@ -51,15 +61,6 @@ def bondFreeEnergiesRNARNA():
     #matrix of entropies (deltaS). Units are initially eu, but then converted to kcal/(mol*K).
 
     bondEntropyMatrixRNARNA /= 1000 #to convert from eu (entropy units) to kcal/(mol*K)
-
-#    bondFreeEnergyMatrixRNARNA = np.zeros((6,4,4)) #matrix of stacking energies (deltaG). Units are kcal/mol.
-#    bondFreeEnergyMatrixRNARNA[0,:,:] = [[-0.8, -1.0, -0.8, -0.93], [-0.6, -0.7, -2.24, -0.7], [-0.8, -2.08, -0.8, -0.55], [-1.10, -0.8, -1.36, -0.8]]
-#    bondFreeEnergyMatrixRNARNA[1,:,:] = [[-1.5, -1.5, -1.4, -2.11], [-1.0, -1.1, -3.26, -0.8], [-1.4, -2.36, -1.6, -1.41], [-2.08, -1.4, -2.11, -1.2]]
-#    bondFreeEnergyMatrixRNARNA[2,:,:] = [[-1.1, -1.5, -1.3, -2.35], [-1.1, -0.7, -3.42, -0.5], [-1.6, -3.26, -1.4, -1.53], [-2.24, -1.0, -2.51, -0.7]]
-#    bondFreeEnergyMatrixRNARNA[3,:,:] = [[-1.0, -0.8, -1.1, -1.33], [-0.7, -0.6, -2.35, -0.5], [-1.1, -2.11, -1.2, -1.00], [-0.93, -0.6, -1.27, -0.5]]
-#    bondFreeEnergyMatrixRNARNA[4,:,:] = [[0.3, -1.0, -0.8, -1.27], [-0.6, -0.7, -2.51, -0.7], [0.6, -2.11, -0.8, -0.500], [-1.36, -0.8, 1.29, -0.8]]
-#    bondFreeEnergyMatrixRNARNA[5,:,:] = [[-1.0, -0.8, -1.1, -1.00], [-0.7, -0.6, -1.53, -0.5], [0.5, -1.41, 0.8, 0.30], [-0.55, -0.6, -0.500, -0.5]]
-#    #the -0.500 was actually measured at +0.47 but the authors claim -0.5 is a better estimate.
 
     return(bondEnergyMatrixRNARNA, bondEntropyMatrixRNARNA)
 
@@ -244,10 +245,6 @@ def freeEnergyMatrixIndices(sequenceInNumbers, firstNtIndex, firstBPIndex, secon
         realSecondNt = copy.copy(firstBP); realFirstNt = copy.copy(secondBP)
         firstNt = realFirstNt; firstBP = realFirstBP; secondNt = realSecondNt; secondBP = realSecondBP
 
-#    elif firstNt > 4 and firstBP <=4 and isParallel and secondNt > 4 and secondBP <=4:
-#        bpType = 1 #RNADNA
-#        bondEnergy,bondEntropy =  deltaGforBPsAndTerminalMismatches_Fxn(
-#               bondEnergyMatrixRNADNA,bondEntropyMatrixRNADNA,firstBP,firstNt,secondBP,secondNt,bpType)
 
 # =============================================================================
 #     Get indices of matrix for specific pair of bps
@@ -334,7 +331,62 @@ def freeEnergyMatrixIndices(sequenceInNumbers, firstNtIndex, firstBPIndex, secon
         #need -5 for DNA nts since nts are numbered 5-8 but indices are 0-3
 #        Had to make the energy/entropy matrices 2D which is why secondNt and secondBP are
 #        not being returned as separate indices, but as one index (4*secondNt + secondBP)
+    def checkCompatibility(C, C3, C4, numStems, linkedStems):
+# =============================================================================
+#        Make the list of structures. Each structure is defined by the list of stems that comprise it
+#        (previously helipoints)
+# =============================================================================
 
+        considerC3andC4 = True
+        minNumStemsInStructure = 2
+
+        numSequences = 1
+        onlyConsiderBondedStrands = False
+
+        numStructures = 0
+        structures = []
+
+        prevNumStructures = -1 #keep track of this just so that we don't print the same statement multiple times
+
+        for i in range(numStems):
+            for j in range(i+1,numStems):
+                if C[i,j]:
+                    currStructure = [i,j]
+                    lenCurrStructure = 2
+                    k = j #the next stem we'll try adding (we're about to add one so that's why it's j and not j+1)
+                    while lenCurrStructure >= 2:
+                        while k < numStems - 1:
+                            k += 1
+
+                            mutuallyCompatible = True
+                            #Check mutual 2-way compatibility between the stem we want to add and all stems
+                            #present in the current structure.
+
+                            for l in currStructure[:lenCurrStructure]: #the same as just "in currStructure" but written
+                                #this way so that if we want to preallocate space it'll be easier
+                                if not C[k,l]:
+                                    mutuallyCompatible = False
+                                    break
+
+                            if considerC3andC4 and mutuallyCompatible:
+#                                Check 3-way compatibility. Iterate over all pairs in current structure
+                                for l,m in itertools.combinations(currStructure[:lenCurrStructure],2):
+                                    if not C3[l,m,k]:
+                                        mutuallyCompatible = False;
+                                        break
+
+#                                Check 4-way compatibility
+                                if mutuallyCompatible and lenCurrStructure > 2:
+                                    #don't actually need to specify and lenCurrStructure > 2 since itertools.combinations
+#                                       would just return an empty set if lenCurrStructure == 2
+#                                    Iterate over all triplets in current structure
+                                    for l,m,n in itertools.combinations(currStructure[:lenCurrStructure],3):
+                                        if not C4[l,m,n,k]:
+                                            mutuallyCompatible = False;
+                                            break
+                            if mutuallyCompatible:
+                                lenCurrStructure += 1
+                                currStructure.append(k)
 
 def calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbers):
 # =============================================================================
@@ -442,7 +494,7 @@ def calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbe
                     stemEntropies[stemNumber] += terminal_AT_penalty_entropy
 
     return(stemEnergies, stemEntropies)
-
+############################### ALGORITHMN #####################################
 
 def initialize(sequence):
     # Run the calculation for the free energy landscape. The calculate free energy
@@ -466,16 +518,12 @@ def initialize(sequence):
     sortedFEs = R.sortedFEs
     compatibilityMatrix = R.C
     sequenceInNumbers = R.sequenceInNumbers
-
     stemEnergies, stemEntropies = calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbers)
-
     return(sequenceInNumbers, numStems, numStructures, STableStructure, STableBPs, compatibilityMatrix, stemEnergies, stemEntropies)
 
 sequence = 'AUCUGAUACUGUGCUAUGUCUGAGAUAGC'
 
 sequenceInNumbers, numStems, numStructures, STableStructure, STableBPs, compatibilityMatrix, stemEnergies, stemEntropies = initialize(sequence)
-
-
 
 def calculateStemTransitionRates(stemEntropies, kB, T):
     k_0 = 1.0
@@ -491,24 +539,24 @@ def calculateTotalFlux(rates):
     return totalFlux
 
 
-def isFixedBasePair(PartiallyFoldedStructure, nextMove):
+def isCompatible(stemsInStructure, j, compatibilityMatrix):
+    # Idea: could just use the compatibiliy matrix that is already created in
+    # RFE.
     # nextMove [[ ntd i, ntd j]]
     # PartiallyFoldedSequence = [[a, b], [c, d], [e, f]....]
     # convert to a list of numbers
-    structure = np.array(PartiallyFoldedStructure).flatten()
-    move = np.array(nextMove).flatten()
-    for s in structure:
-        for m in move:
-            if s == m:
-                return True
-    else:
-        return False
+
+    for i in range(len(stemsInStructure)):
+        index = stemsInStructure[i]
+        if compatibilityMatrix[index, j] == 0:
+            return False
+    return True
 
 
-def MonteCarloStep(currentStructure, allPossibleStems, time, stemEntropies, totalFlux):
+def MonteCarloStep(currentStructure, stemsInStructure, allPossibleStems, compatibilityMatrix, time, stemEntropies, totalFlux):
+    # Following Dykeman 2015 (Kfold) paper
 
     if len(currentStructure) == 0:
-        
         r1 = np.random.random()
         r2 = np.random.random()
         transitionRates = calculateStemTransitionRates(stemEntropies, kB =  0.0019872, T = 310.15)
@@ -519,13 +567,13 @@ def MonteCarloStep(currentStructure, allPossibleStems, time, stemEntropies, tota
             if  trial >= r1*totalFlux:
                 nextMove = allPossibleStems[i]
                 currentStructure.append(nextMove)
+                stemsInStructure.append(i)
                 for k in range(len(nextMove)):
                     print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
                 totalFlux = r1*totalFlux - sum(transitionRates[:i])
                 break
 
     else:
-
         r1 = np.random.random()
         r2 = np.random.random()
         transitionRates = calculateStemTransitionRates(stemEntropies, kB =  0.0019872, T = 310.15)
@@ -535,15 +583,27 @@ def MonteCarloStep(currentStructure, allPossibleStems, time, stemEntropies, tota
             trial = sum(transitionRates[:i])
             if  trial >= r1*totalFlux:
                 nextMove = allPossibleStems[i]
-                if isFixedBasePair(currentStructure, nextMove) == False:
-                      currentStructure.append(nextMove)
-                      for k in range(len(nextMove)):
-                          print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
-                      totalFlux = r1*totalFlux - sum(transitionRates[:i])
-                      break
+                if isCompatible(stemsInStructure, i, compatibilityMatrix):
+                    if nextMove not in currentStructure:
+                        currentStructure.append(nextMove)
+                        stemsInStructure.append(i)
+                        for k in range(len(nextMove)):
+                            print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
+                        totalFlux = r1*totalFlux - sum(transitionRates[:i])
+                        break
 
-    return currentStructure, nextMove, totalFlux, time
+    # Need a terminating condition:
+    # How much time can the folding take?
+    # or until structure is created?
+
+    return currentStructure, nextMove, stemsInStructure, totalFlux, time
 
 startingStructure = []
-cS, nM, t, tflux = MonteCarloStep(startingStructure, STableBPs, 0, stemEntropies, 0)
-cS2, nM2, t2, tflux2 = MonteCarloStep(cS, STableBPs, t, stemEntropies, tflux)
+stemsInStructure = []
+cS, nM, stemS, t, tflux = MonteCarloStep(startingStructure, stemsInStructure, STableBPs, compatibilityMatrix, 0, stemEntropies, 0)
+start = 0
+max_steps = 3
+
+while start < max_steps:
+    cS, nM, stemS, t, tflux = MonteCarloStep(cS, stemS, STableBPs, compatibilityMatrix, t, stemEntropies, tflux)
+    start +=1
