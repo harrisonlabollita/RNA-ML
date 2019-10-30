@@ -11,17 +11,12 @@ import scipy
 #                                     transition rates
 #                                     and probabilities
 #     - Need to verify a couple of things:
-#           . calculating the transition rate
-#           . sampling from prob distribution
-#           . using the total flux/ partial flux method
-#             but not sure if this is correct
-#           . stopping condition?
-#           . need to add breaking capability
+#
 #  2. Monte Carlo Step
 #    - Use random numbers to determine the next possible move to make based off of probaility and transition rate
-#    - Move must be compatible with the current structure (S_0)
+#    - Move must be compatible with  the current structure (S_0)
 # 3. Update
-#    - Save th move
+#    - Save the move
 #    - Update structure S_0 ---> S_1 = stem1 + stem2
 #    - Time += time_step
 # 4. Iterate
@@ -545,7 +540,6 @@ def isCompatible(stemsInStructure, j, compatibilityMatrix):
     # nextMove [[ ntd i, ntd j]]
     # PartiallyFoldedSequence = [[a, b], [c, d], [e, f]....]
     # convert to a list of numbers
-
     for i in range(len(stemsInStructure)):
         index = stemsInStructure[i]
         if compatibilityMatrix[index, j] == 0:
@@ -568,10 +562,15 @@ def MonteCarloStep(currentStructure, stemsInStructure, allPossibleStems, compati
                 nextMove = allPossibleStems[i]
                 currentStructure.append(nextMove)
                 stemsInStructure.append(i)
+                # remove the chosen stem from the list
+                del allPossibleStems[i]
+                del transitionRates[i]
+
                 for k in range(len(nextMove)):
                     print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
                 totalFlux = r1*totalFlux - sum(transitionRates[:i])
                 break
+
 
     else:
         r1 = np.random.random()
@@ -587,10 +586,41 @@ def MonteCarloStep(currentStructure, stemsInStructure, allPossibleStems, compati
                     if nextMove not in currentStructure:
                         currentStructure.append(nextMove)
                         stemsInStructure.append(i)
+                        # remove the stem and the rate
+                        # idea maybe let's combine these arrays
+                        del allPossibleStems[i]
+                        del transitionRates[i]
+
                         for k in range(len(nextMove)):
                             print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
                         totalFlux = r1*totalFlux - sum(transitionRates[:i])
                         break
+#                else:
+#                    inCompatible = []
+#                    # because our next move was incompatible with the current move, let's break
+#                    # remove the incompatible one and add the new one
+#                    for j in range(len(stemsInStructure)):
+#                        # nextMove has index of the ith stem so we use i here
+#                        if compatibilityMatrix[j, i] == 0:
+#                            inCompatible.append(j)
+#
+#                    to_delete = sorted(inCompatible)
+#                    print(to_delete)
+#
+#                    for d in to_delete:
+#                        del currentStructure[d]
+#                        del stemsInStructure[d]
+#
+#                    if nextMove not in currenStucture:
+#                        currentStructure.append(i) # add the nextMove
+#                        stemsInStructure.append(i)
+#                        del allPossibleStems[i]
+#                        del transitionRates[i]
+#
+#                    for k in range(len(nextMove)):
+#                        print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
+#                    toatlFlux = r1*totalFlux - sum(transitionRates)
+#
 
     # Need a terminating condition:
     # How much time can the folding take?
@@ -601,9 +631,3 @@ def MonteCarloStep(currentStructure, stemsInStructure, allPossibleStems, compati
 startingStructure = []
 stemsInStructure = []
 cS, nM, stemS, t, tflux = MonteCarloStep(startingStructure, stemsInStructure, STableBPs, compatibilityMatrix, 0, stemEntropies, 0)
-start = 0
-max_steps = 3
-
-while start < max_steps:
-    cS, nM, stemS, t, tflux = MonteCarloStep(cS, stemS, STableBPs, compatibilityMatrix, t, stemEntropies, tflux)
-    start +=1
