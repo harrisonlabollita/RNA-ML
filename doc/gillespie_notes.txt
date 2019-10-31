@@ -17,13 +17,9 @@ This is where the inequality comes into play, i.e, partialSum >= r2*totalFlux
 QUESTIONS:
 
 1. What is my stopping condition? When I have a structure?
-2. Am I correctly calculating the reaction rates
 3. Sampling probability distribution or is this the partial sum table?
 4. What are the ideal backbone functions that need to be in place?
 
 
 PROBLEM:
-1. My structures do not make sense. 
-2. Need to add a breaking functionality
-3. What would be the condition for it to break.
-4. Need to keep track of when I am creating a loop
+1. My structures do not make sense.
