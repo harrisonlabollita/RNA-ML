@@ -1,3 +1,6 @@
+import numpy as np
+import kineticFunctions as kF
+
 ############################### ALGORITHMN #####################################
 
 def initialize(sequence):
@@ -8,22 +11,17 @@ def initialize(sequence):
     #                        numStructures      (number of structures)
     #                        STableStructure    (number of Stems)
     #                        STableBPs          (number of Stems BasePair Format)
+    #                        Compatibility Matrix
+    #                        Sequence in Numbers
 
-    R = RNALandscape([sequence], storeGraphs = False, makeFigures = False,
-    printProgressUpdate = False, toSave = False, tryToLoadVariables = False)
-    R.calculateFELandscape()
     # Rename variables/information that we will need in our Gillespie algorithmn
-    numStems = R.numStems
-    numStructures = R.numStructures
-    STableStructure = R.STableStructure
-    STableBPs = R.STableBPs
-    indexSort = R.indexSort
-    sortedProbs = R.sortedProbs
-    sortedFEs = R.sortedFEs
-    compatibilityMatrix = R.C
-    sequenceInNumbers = R.sequenceInNumbers
-    stemEnergies, stemEntropies = calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbers)
-    return(sequenceInNumbers, numStems, numStructures, STableStructure, STableBPs, compatibilityMatrix, stemEnergies, stemEntropies)
+    numStems, sequenceInNumbers, STableBPs, STablesStructure = kF.createSTable(sequence)
+
+    compatibilityMatrix = kF.makeCompatibilityMatrix(numStems, STableBPs)
+
+    stemEnergies, stemEntropies = kF.calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbers)
+
+    return(STableBPs, compatibilityMatrix, stemEnergies, stemEntropies)
 
 sequence = 'AUCUGAUACUGUGCUAUGUCUGAGAUAGC'
 
@@ -37,11 +35,9 @@ def calculateStemTransitionRates(stemEntropies, kB, T):
         transitionRates.append(rate)
     return transitionRates
 
-
 def calculateTotalFlux(rates):
     totalFlux = sum(rates)
     return totalFlux
-
 
 def isCompatible(stemsInStructure, j, compatibilityMatrix):
     # Idea: could just use the compatibiliy matrix that is already created in
@@ -54,7 +50,6 @@ def isCompatible(stemsInStructure, j, compatibilityMatrix):
         if compatibilityMatrix[index, j] == 0:
             return False
     return True
-
 
 def MonteCarloStep(currentStructure, stemsInStructure, allPossibleStems, compatibilityMatrix, time, stemEntropies, totalFlux, transitionRates):
     # Following Dykeman 2015 (Kfold) paper
@@ -79,7 +74,6 @@ def MonteCarloStep(currentStructure, stemsInStructure, allPossibleStems, compati
                     print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
                 totalFlux = r1*totalFlux - sum(transitionRates[:i])
                 break
-
 
     else:
         r1 = np.random.random()

@@ -1,43 +1,15 @@
-from RFE_landscape import RNALandscape
 import numpy as np
 import copy
 import scipy
 
-########################## GILLESPIE ALGORITHMN ################################
-# Initialization
-#     - Given sequence of RNA
-#     - Use RFE_landscpae to initialize:
-#                                     all possible stems,
-#                                     transition rates
-#                                     and probabilities
-#     - Need to verify a couple of things:
-#
-#  2. Monte Carlo Step
-#    - Use random numbers to determine the next possible move to make based off of probaility and transition rate
-#    - Move must be compatible with  the current structure (S_0)
-# 3. Update
-#    - Save the move
-#    - Update structure S_0 ---> S_1 = stem1 + stem2
-#    - Time += time_step
-# 4. Iterate
-#    - Repeat Monte Carlo step until simulation time runts out
-################################################################################
-
 ############################## HELPER FUNCTIONS ################################
 # Functions taken from RFE Landscape and used independuntly from the calculate
 # FE landscapre funciton in the RFE class.
+# Most of the comments and descriptions from functions have been removed to increase
+# readability.
 
 def bondFreeEnergiesRNARNA():
-    #define the RNA/RNA bond enthalpy and entropy arrays
 
-    #Sources: Table 4 of Xia et al Biochemistry '98
-        #Table 4 of Mathews et al. JMB '99
-        #Table 3 of Xia, Mathews, Turner "Thermodynamics of RNA secondary structure formation" in book by Soll, Nishmura, Moore
-    #First index tells you if the first bp of the set is AU (0) CG (1) GC (2) UA (3) GU (4) or UG (5)
-    #Second index tells you if the 3' ntd of the second bp is A (0) C (1) G(2) or U(3) (which row of table 1 in Serra & Turner).
-    #Third index tells you if the 5' ntd of the second bp is A (0) C (1) G(2) or U(3) (which column of table 1 in Serra & Turner).
-
-#    Had to make this 2D array to be able to use scipy sparse functions, so second/third index is replaced
 #    by (4*second index) + third index
     bondEnergyMatrixRNARNA = np.array([[-3.9, 2, -3.5, -6.82, -2.3, 6, -11.4, -0.3, -3.1, -10.48, -3.5, -3.21, -9.38, 4.6, -8.81, -1.7],
                                        [-9.1, -5.6, -5.6, -10.44, -5.7, -3.4, -13.39, -2.7, -8.2, -10.64, -9.2, -5.61, -10.48, -5.3, -12.11, -8.6],
@@ -60,16 +32,7 @@ def bondFreeEnergiesRNARNA():
     return(bondEnergyMatrixRNARNA, bondEntropyMatrixRNARNA)
 
 def bondFreeEnergiesDNADNA():
-    #define the DNA/DNA bond enthalpy and entropy arrays
 
-    #Data is from From: Thermodynamics and NMR of Internal G·T Mismatches in DNA and other papers by Allawi and
-    #various SantaLucia publications (cited as 28-32 in Mfold web server for nucleic acid folding and hybridization prediction)
-    #First index tells you if the first bp of the set is AT (0) CG (1) GC (2) or TA (3)
-    #Second index tells you if the 3' ntd of the second bp is A (0) C (1) G(2) or T(3)
-    #Third index tells you if the 5' ntd of the second bp is A (0) C (1) G(2) or T(3)
-
-#    Had to make this 2D array to be able to use scipy sparse functions, so second/third index is replaced
-#    by (4*second index) + third index
 
     bondFreeEnergyMatrixDNADNA = np.array([[0.61, 0.88, 0.14, -1.0, 0.77, 1.33, -1.44, 0.64, 0.02, -1.28, -0.13, 0.71, -0.88, 0.73, 0.07, 0.69],
                                            [0.43, 0.75, 0.03, -1.45, 0.79, 0.7, -1.84, 0.62, 0.11, -2.17, -0.11, -0.47, -1.28, 0.4, -0.32, -0.21],
@@ -87,18 +50,8 @@ def bondFreeEnergiesDNADNA():
     #matrix of entropies (deltaS). Units are converted to kcal/(mol*K) by dividing by 310.15 since the free energies were measured at 310.15 K
 
     return(bondEnergyMatrixDNADNA, bondEntropyMatrixDNADNA)
+
 def bondFreeEnergiesRNADNA():
-    #define the RNA/DNA bond enthalpy and entropy arrays
-
-    #First index tells you if the set is (putting RNA first)
-    #5'AX3'/3'TY5' (0) 5CX3/3GY5 (1) 5GX3/3CY5 (2) 5UX3/3AY5 (3) 5XA3/3YT5 (4) 5XC3/3YG5 (5) 5XG3/3YC5 (6) or 5XU3/3YA5 (7).
-    #Second index tells you if X is A (0) C (1) G (2) or U (3)
-    #Third index tells you if Y is A (0) C (1) G (2) or T (3)
-    #Data is from From: Thermodynamic Parameters To Predict Stability of RNA/DNA Hybrid Duplexes &
-    #Thermodynamic contributions of single internal rA·dA, rC·dC, rG·dG and rU·dT mismatches in RNA/DNA duplexes
-
-#    Had to make this 2D array to be able to use scipy sparse functions, so second/third index is replaced
-#    by  (4*second index) + third index
 
     #100 is put in place of elements for which there aren't published parameters
     bondFreeEnergyMatrixRNADNA = np.array([[1.07, 100, 100, -1.0, 100, 1.64, -2.1, 100, 100, -1.8, 0.31, 100, -0.9, 100, 100, 0.63],
@@ -171,21 +124,7 @@ def terminalATAUPenalties():
 
 def freeEnergyMatrixIndices(sequenceInNumbers, firstNtIndex, firstBPIndex, secondNtIndex,
                             secondBPIndex, bound = [1,1], unmatchedBPPenalty = True):
-# =============================================================================
-#     Get the indices of the energy/entropy matrix to use for
-#    the base pair stack:
-#
-#    5' firstNt, secondNt 3'
-#    3' firstBP, secondBP 5'
-#
-#    where firstNt is sequenceInNumbers[firstNtIndex], etc.
-#
-#    Assumes firstNt and firstBP are actually bound, but secondNt and secondBP need not be
-#    bound = [are_firstNt_and_firstBP_bound, are_secondNt_and_secondBP_bound]
-#    unmatchedBPPenalty = True if two nts that could be bound but aren't should be treated as
-#    an A-C pair. On top of whether or not we treat them as an A-C pair, we introduce an
-#    [energy, entropy] penalty given by unboundButCouldBindPenalties
-# =============================================================================
+
     if not bound[0]: #if we accidentally have firstNt and firstBP not bound, flip the stem
         realSecondBPIndex = copy.copy(firstNtIndex); realFirstBPIndex = copy.copy(secondNtIndex)
         realSecondNtIndex = copy.copy(firstBPIndex); realFirstNtIndex = copy.copy(secondBPIndex)
@@ -271,10 +210,7 @@ def freeEnergyMatrixIndices(sequenceInNumbers, firstNtIndex, firstBPIndex, secon
 #        not being returned as separate indices, but as one index (4*secondNt + secondBP)
 
     elif bpType == 1: #we're dealing with a DNA/DNA pair
-        #For the bondEnergyMatrix. We're dealing with DNA/DNA pair
-        #First index tells you if the first bp of the set is AT (0) CG (1) GC (2) or TA (3)
-        #Second index tells you if the 3' ntd of the second bp is A (0) C (1) G(2) or T(3)
-        #Third index tells you if the 5' ntd of the second bp is A (0) C (1) G(2) or T(3)
+
         if firstNt == 5 and firstBP == 8:
             basePair = 0
         elif firstNt == 6 and firstBP == 7:
@@ -292,15 +228,7 @@ def freeEnergyMatrixIndices(sequenceInNumbers, firstNtIndex, firstBPIndex, secon
 #        not being returned as separate indices, but as one index (4*secondNt + secondBP)
 
     elif bpType == 2: #we're dealing with an RNA/DNA bond
-        #For the bondEnergyMatrix,
-#        First index tells you if the set is (putting RNA first) (0) 5'AX3'/3'TY5' (1) 5CX3/3GY5
-#       (2) 5GX3/3CY5 (3) 5UX3/3AY5 (4) 5XA3/3YT5 (5) 5XC3/3YG5 (6) 5XG3/3YC5 or (7) 5XU3/3YA5.
 
-        #firstNt and secondNt are fixed to be RNA while firstBP and secondBP are DNA. Therefore the order of which
-        #base pair is first or second is in some cases switched (which is why we may have had to flip the stem
-#        upside down a minute ago)
-        #Second index tells you if the 3' ntd of the second bp is A (0) C (1) G(2) or U(3)
-        #Third index tells you if the 5' ntd of the second bp is A (0) C (1) G(2) or U(3)
 
         if firstNt == 1 and firstBP == 8:
             basePair = 0
@@ -322,15 +250,10 @@ def freeEnergyMatrixIndices(sequenceInNumbers, firstNtIndex, firstBPIndex, secon
             print('The deltaG function has a problem RNA/DNA')
 
         return([basePair,4*(secondNt - 1) + (secondBP - 5)], bpType)
-        #need -1 for RNA nts since nts are numbered 1-4 but indices are 0-3
-        #need -5 for DNA nts since nts are numbered 5-8 but indices are 0-3
-#        Had to make the energy/entropy matrices 2D which is why secondNt and secondBP are
-#        not being returned as separate indices, but as one index (4*secondNt + secondBP)
+
+
     def checkCompatibility(C, C3, C4, numStems, linkedStems):
-# =============================================================================
-#        Make the list of structures. Each structure is defined by the list of stems that comprise it
-#        (previously helipoints)
-# =============================================================================
+
 
         considerC3andC4 = True
         minNumStemsInStructure = 2
@@ -384,10 +307,7 @@ def freeEnergyMatrixIndices(sequenceInNumbers, firstNtIndex, firstBPIndex, secon
                                 currStructure.append(k)
 
 def calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbers):
-# =============================================================================
-#         Calculate the bond energy and entropy of each stem, not including what to do at the
-#        ends of the stems (i.e. dangling ends, terminal mismatches, and the like)
-# =============================================================================
+
     unmatchedBPPenalty = True
     includeTerminalAUATPenalties = True
     considerAllAsTerminalMismatches = False
@@ -406,30 +326,16 @@ def calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbe
 
 
     RNARNACount = scipy.sparse.lil_matrix((6,16),dtype=int) #np.zeros((6,4,4),dtype = int)
-        #First index tells you if the first bp of the set is AU (0) CG (1) GC (2) UA (3) GU (4) or UG (5)
-        #Second index tells you if the 3' ntd of the second bp is A (0) C (1) G(2) or U(3) (which row of table 1 in Serra & Turner).
-        #Third index tells you if the 5' ntd of the second bp is A (0) C (1) G(2) or U(3) (which column of table 1 in Serra & Turner).
 
-#    Had to make this and the others 2D array to be able to use scipy sparse functions, so
-#    second/third index is replaced by (4*second index) + third index. That's why it's
-#        np.zeros(6,16) and not np.zeros(6,4,4).
-#        lil_matrix was chosen because, from scipy reference page, it is fast for constructing
-#        sparse matrices incrementally. For operations (later we'll multiply it) it should be converted to
-#        another form.
 
     DNADNACount = scipy.sparse.lil_matrix((4,16),dtype=int) #np.zeros((4,16),dtype = int)
-        #First index tells you if the first bp of the set is AT (0) CG (1) GC (2) or TA (3)
-        #Second index tells you if the 3' ntd of the second bp is A (0) C (1) G(2) or T(3)
-        #Third index tells you if the 5' ntd of the second bp is A (0) C (1) G(2) or T(3)
+
 
     RNADNACount = scipy.sparse.lil_matrix((8,16),dtype=int) #np.zeros((8,16),dtype = int)
-        #First index tells you if the set is (putting RNA first)
-        #5'AX3'/3'TY5' (0) 5CX3/3GY5 (1) 5GX3/3CY5 (2) 5UX3/3AY5 (3) 5XA3/3YT5 (4) 5XC3/3YG5 (5) 5XG3/3YC5 (6) or 5XU3/3YA5 (7).
-        #Second index tells you if X is A (0) C (1) G (2) or U (3)
-        #Third index tells you if Y is A (0) C (1) G (2) or T (3)
+
 
     terminalAUATCount = scipy.sparse.lil_matrix((1,2),dtype=int)
-#        Number of terminal AU (or GU) pairs, number of terminal AT pairs
+
 
     unknownCount = scipy.sparse.lil_matrix((1,1),dtype=int) #np.zeros((1,1), dtype = int)
 
@@ -458,21 +364,6 @@ def calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbe
             stemEntropies[stemNumber] += entropyMatrices[bpType][index[0], index[1]]
 
 
-# =============================================================================
-#    Include terminal penalties for AU, GU, or AT pairs at the ends of helices
-#    (from Xia et al. 1998 for RNA, or SantaLucia and Hicks (2004) for DNA):
-#    GU penalty is assumed to be same as for AU (Xia paper, or NNDB)
-#    From Xia, Mathews, Turner paper (from Soll, Nishimura, Moore book):
-#    "Note that when dangling ends or terminal mismatches follow terminal AU
-#    or GU pairs, the penalty for a terminal AU is still applied"
-#
-#    Guess that  this penalty also applies for DNA/RNA interactions since
-#    it's physically motivated by the number of H-bonds AU/AT pairs have
-#     if (bpType == 0 and index[0] == 0) or (bpType == 2 and (index[0] == 3 or index[0] == 7)):
-#         terminalAUPenaltyCounter += 1
-#     elif (bpType == 1 and index[0] == 0) or (bpType == 2 and (index[0] == 0 or index[0] == 4)):
-#         terminalATPenaltyCounter += 1
-# =============================================================================
         for j in [0, numBonds - 1]: #penalties apply to ends of helices
             if sequenceInNumbers[stem[j]] == 4 or sequenceInNumbers[stem[j + numBonds]] == 4:
                 stemFECounts[stemNumber][3][0,0] += 1 #terminal AU/GU was found
@@ -489,3 +380,260 @@ def calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbe
                     stemEntropies[stemNumber] += terminal_AT_penalty_entropy
 
     return(stemEnergies, stemEntropies)
+
+
+def isComplementary(x,y):
+#    x,y define two ntds with the code RNA: A=1,C=2,G=3,U=4; DNA: A=5,C=6,G=7,T=8
+#    unknown = 0
+    x, y = sorted([x,y])
+    if x == 1 and y == 4:
+        return(True)
+    elif x == 5 and y == 8:
+        return(True)
+    elif x == 1 and y == 8:
+        return(True)
+    elif x == 4 and y == 5:
+        return(True)
+    elif x == 2 and y == 3:
+        return(True)
+    elif x == 6 and y == 7:
+        return(True)
+    elif x == 2 and y == 7:
+        return(True)
+    elif x == 3 and y == 6:
+        return(True)
+    elif x == 3 and y == 4:
+        return(True)
+    #Can't have DNA G bind to RNA U
+
+    return(False)
+
+
+
+    def createSTable(sequence):
+        numNt = numNt1= len(sequence)
+
+        seqInNum  = np.array([1 if sequence[i] == 'A' else
+                              2 if sequence[i] == 'C' else
+                              3 if sequence[i] == 'G' else
+                              4 if sequence[i] == 'U' else
+                              0 for i in range(numNt)])
+
+        minBPInStem = 2
+        minNtsInHairpin = 3
+        substems = 'all'
+        maxNumStems = 10**4, #to preallocate space for STable.
+        STableStructure = [None]*maxNumStems #first column of STable
+        STableBPs = [None]*maxNumStems #second column of STable
+        onlyConsiderSubstemsFromEdges = True
+        onlyAllowSubsetsOfLongestStems = True
+
+        B = np.zeros((numNt,numNt)) #matrix describing which bases are allowed to bond to which others
+        for i in range(numNt):
+            for j in range(numNt):
+                if isComplementary(seqInNum[i], seqInNum[j]):
+                    B[i,j] = 1
+                    B[j,i] = 1
+
+        numStems = 0
+
+
+        BPsAlreadyConsidered = [] #so we avoid subsets of stems until we consider them explicitly later
+        maxI = numNt - 2*minBPInStem - minNtsInHairpin + 1 #we need at least minBPInStem consecutive base pairs binding
+
+        for i in range(maxI):
+            minJ = i + 2*minBPInStem + minNtsInHairpin - 2
+            for j in range(numNt - 1, minJ, -1): #range(start,stop,step)
+                #so for example, if we have numNt = 7, minBPInStem = 2, minNtsInHairpin = 3, the only possibility
+                #is a hairpin with 0 bonded to 6, and 1 to 5
+                if B[i,j] == 1: #if they can bond
+
+                    if [i,j] not in BPsAlreadyConsidered:
+#                        BPsAlreadyConsidered.append([i,j]) #unnecessary since we definitely won't consider this bp again
+
+                        currentStemI = [i]
+                        currentStemJ = [j]
+                        listOfPairs = [[i,j]]
+
+                        #now try to lengthen the stem, to include nts i + lenStem and j - lenStem
+                        lenStem = 0 #lenStem is one less than the number of bps in a stem.
+                        endOfStem = False
+                        while not endOfStem:
+                            lenStem += 1
+                            newI = i + lenStem
+                            newJ = j - lenStem
+                            if (newI > numNt - 1 or newJ < 0 or #if we've gone beyond the edges of the RNA
+                                newJ - newI <= minNtsInHairpin or #or the bps are too close together
+                                B[newI, newJ] == 0): #or the bps can't actually bind
+
+                                endOfStem = True
+                                lenStem -= 1 #to correct for adding one earlier
+                            else:
+                                currentStemI.append(newI)
+                                currentStemJ.append(newJ)
+                                listOfPairs.append([newI,newJ])
+                                BPsAlreadyConsidered.append([newI, newJ])
+                        #now that we've finished making the longest possible stem starting with the base pair i,j
+                        #add that stem to STable
+                        if len(currentStemI) >= minBPInStem:
+                            STableStructure[numStems] = currentStemI + currentStemJ
+                            STableBPs[numStems] = listOfPairs
+                            numStems += 1
+
+        if onlyAllowSubsetsOfLongestStems:
+            #remove all stems but the longest stems so that in the next step we add
+            #only the subsets of the longest stems
+
+            maxLengthStem = minBPInStem
+            for i in range(numStems):
+                if len(STableStructure[i])/2 > maxLengthStem:
+                    maxLengthStem = len(STableStructure[i])/2
+
+            minMaxLengthStem = 16 #don't chop off stems of length more than minMaxLengthStem
+            maxLengthStem = min(maxLengthStem,minMaxLengthStem);
+            STableBPs = [STableBPs[i] for i in range(numStems) if len(STableStructure[i])/2 >= maxLengthStem]
+            STableStructure = [STableStructure[i] for i in range(numStems) if len(STableStructure[i])/2 >= maxLengthStem]
+            numStems = len(STableStructure)
+
+            #since we preallocate space, need to make more empty room since we just removed all extra space
+            STableBPs += [None]*maxNumStems
+            STableStructure += [None]*maxNumStems
+
+
+        for i in range(numStems):
+            fullStemI = STableStructure[i] #the full stem we're considering
+            lenStem = int(len(fullStemI)/2)
+
+            #What substems should we consider? This is given by the substems argument to the code
+            if substems == 'all':
+                minBPInStemSub = minBPInStem
+            else: #then substems is an integer
+                minBPInStemSub = max(lenStem - substems,minBPInStem)
+
+            #we can make substems of length lengthStem-1 till minBPInStem.
+            for j in range(1,lenStem-minBPInStemSub+1): #There are j possible lengths.
+                #j also tells us how much shorter the substem is compared to the full stem.
+                possSubstemCounters = np.arange(j+1)
+                if onlyConsiderSubstemsFromEdges:
+                    possSubstemCounters = [0,j]
+
+                for k in possSubstemCounters: #substems come from getting rid of either edge.
+                    truncatedStemI = fullStemI[k:lenStem-j+k] + fullStemI[lenStem+k:len(fullStemI)-j+k]
+                    #truncatedStemI is the truncated stem. Add it to STable
+                    currentStemI = truncatedStemI[:int(len(truncatedStemI)/2)]
+                    currentStemJ = truncatedStemI[int(len(truncatedStemI)/2):]
+                    STableStructure[numStems] = currentStemI + currentStemJ
+
+                    listOfPairs = [[currentStemI[0],currentStemJ[0]]]
+                    for l in range(1,len(currentStemI)):
+                        listOfPairs.append([currentStemI[l],currentStemJ[l]])
+                    STableBPs[numStems] = listOfPairs
+                    numStems += 1
+
+        #remove preallocated space
+        STableBPs = [STableBPs[i] for i in range(numStems)]
+        STableStructure = [STableStructure[i] for i in range(numStems)]
+
+        return(seqInNum, numStems, STableStructure, STableBPs)
+
+    def makeCompatibilityMatrix(numStems, numSequences, STableStructure, STableBPs):
+# =============================================================================
+#         Defines a matrix C of numStems x numStems where the ij'th element is 1
+#        if stems i and j can coexist in the same structure and 0 otherwise.
+#        We set the diagonal elements to 1.
+# =============================================================================
+        minNtsInHairpin = 3
+        frozenStems = self.frozenStems
+        linkedStems = self.linkedStems
+        allowPseudoknots = True
+
+
+        C = np.zeros((numStems,numStems), dtype = bool)
+        for i in range(numStems):
+            for j in range(i,numStems):
+                if i == j:
+                    C[i,j] = 1
+                    C[j,i] = 1
+                elif not twoListsShareElement(STableStructure[i],STableStructure[j]):
+                    C[i,j] = 1
+                    C[j,i] = 1
+                    disallowPseudoknotsIJ = not allowPseudoknots
+                    if numSequences > 1:
+                        if linkedStems[i] or linkedStems[j]:
+                            disallowPseudoknotsIJ = False
+                    if disallowPseudoknotsIJ:
+
+                        a = STableStructure[i][0]
+                        b = STableStructure[i][int(len(STableStructure[i]/2))]
+                        c = STableStructure[j][0]
+                        d = STableStructure[j][int(len(STableStructure[j]/2))]
+
+                        if c < a: #switch around labels so we have c>a
+                            a = STableStructure[j][0]
+                            b = STableStructure[j][int(len(STableStructure[j]/2))]
+                            c = STableStructure[i][0]
+                            d = STableStructure[i][int(len(STableStructure[i]/2))]
+
+                        if (a<c and c<b and b<d):
+                            C[i,j] = 0
+                            C[j,i] = 0
+
+                    #make sure each hairpin has at least minBPInHairpin unpaired bps in it.
+                    #Right now, this only constrains pairwise compatible regions, but it's a start
+                    iHairpin = list(range(STableStructure[i][int(len(STableStructure[i])/2) - 1] + 1,
+                                         STableStructure[i][int(len(STableStructure[i])/2)]))
+                    #The unpaired nts between the start and end of stem i
+                    jHairpin = list(range(STableStructure[j][int(len(STableStructure[j])/2) - 1] + 1,
+                                         STableStructure[j][int(len(STableStructure[j])/2)]))
+                    #same for stem j
+
+                    #if the number of unpaired nts is less than minNtsInHairpin
+                    if (len(np.setdiff1d(iHairpin,STableStructure[j])) < minNtsInHairpin or
+                        len(np.setdiff1d(jHairpin,STableStructure[i])) < minNtsInHairpin):
+                        C[i,j] = 0
+                        C[j,i] = 0
+
+        #That does it for the basic compatibility matrix.
+
+        if frozenStems:
+            for i in range(numStems): #for each stem
+                if C[i,i]: #not important here, but useful when we repeat this process after the next block.
+                    for j in range(len(frozenStems)): #for each set of stems that need to be included
+                        compatibleWithFrozen = False #is stem i compatible with at least one of the stems
+                        #out of the j'th list in frozenStems? It needs to be (for all j) to be included in any structure.
+                        for k in range(len(frozenStems[j])):
+                            if C[i,frozenStems[j][k]]:
+                                compatibleWithFrozen = True #it's compatible with at least one of the stems
+                                break
+
+                        if not compatibleWithFrozen: #if for any set of regions one of which needs to be included,
+                            #region i isn't compatible with any of them, we can't include it in our structure
+                            C[i,:] = 0
+                            C[:,i] = 0
+
+        for i in range(numStems):
+            for j in range(i+1,numStems):
+                if C[i,j]: #not worth going through this code if we already know the regions aren't compatible
+                    combinedBPs = STableBPs[i] + STableBPs[j]
+                    combinedStem = bpsList2structure(combinedBPs)
+                    if len(combinedStem) == 1: #then the combined stems form one single stem
+                        C[i,j] = 0
+                        C[j,i] = 0
+
+        if frozenStems:
+            for i in range(numStems): #for each stem
+                if C[i,i]:
+                    for j in range(len(frozenStems)): #for each set of stems that need to be included
+                        compatibleWithFrozen = False #is stem i compatible with at least one of the stems
+                        #out of the j'th list in frozenStems? It needs to be (for all j) to be included in any structure.
+                        for k in range(len(frozenStems[j])):
+                            if C[i,frozenStems[j][k]]:
+                                compatibleWithFrozen = True #it's compatible with at least one of the stems
+                                break
+
+                        if not compatibleWithFrozen: #if for any set of regions one of which needs to be included,
+                            #region i isn't compatible with any of them, we can't include it in our structure
+                            C[i,:] = 0
+                            C[:,i] = 0
+
+        return(C)
