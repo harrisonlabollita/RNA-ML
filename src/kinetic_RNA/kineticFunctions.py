@@ -1,12 +1,59 @@
 import numpy as np
 import copy
 import scipy
+from scipy import sparse as sp
 
 ############################## HELPER FUNCTIONS ################################
 # Functions taken from RFE Landscape and used independuntly from the calculate
 # FE landscapre funciton in the RFE class.
 # Most of the comments and descriptions from functions have been removed to increase
 # readability.
+
+def twoListsShareElement(a,b):
+# =============================================================================
+#     Check if two lists, a and b, share any items. This is supposedly the fastest way to test this.
+#    https://stackoverflow.com/questions/3170055/test-if-lists-share-any-items-in-python
+#    Returns True if the lists share any elements, False otherwise
+# =============================================================================
+    return(not set(a).isdisjoint(b))
+
+def bpsList2structure(bpsList):
+# =============================================================================
+#     Given a list of base pairs, make them in "structure" format.
+# =============================================================================
+    bpsList = sorted(bpsList)
+    structure = []
+    startOfStem = False
+    stem1 = [] #first nts of stem
+    stem2 = [] #complementary nts of stem
+    for i in range(len(bpsList)): #for each base pair
+        firstBP = bpsList[i][0]
+        secondBP = bpsList[i][1]
+
+        if i: #i.e. if it's not the first base pair being considered
+            #check if it's a continuation of the previous stem.
+            if firstBP - stem1[-1] == 1:
+                if secondBP - stem2[-1] == 1: #we're dealing with a parallel stem.
+                    startOfStem = False
+                elif secondBP - stem2[-1] == -1: #antiparallel (normal) stem
+                    startOfStem = False
+                else:
+                    startOfStem = True
+            else:
+                startOfStem = True
+
+        if not startOfStem:
+            stem1.append(firstBP)
+            stem2.append(secondBP)
+        else:
+            structure.append(stem1 + stem2)
+            stem1 = [firstBP]
+            stem2 = [secondBP]
+
+        #if we've reached the end, make sure to put in the last base pair
+        if i == len(bpsList) - 1:
+            structure.append(stem1 + stem2)
+    return(structure)
 
 def bondFreeEnergiesRNARNA():
 
@@ -313,7 +360,6 @@ def calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbe
     considerAllAsTerminalMismatches = False
 #        #Define energy (enthalpy; deltaH; units of kcal/mol) and entropy (deltaS; units of kcal/(mol*K)) matrices for bonds.
     energyMatrices, entropyMatrices = bondFreeEnergies()
-#
     stemEnergies = np.zeros(numStems)
     stemEntropies = np.zeros(numStems)
 
@@ -325,22 +371,12 @@ def calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbe
              terminal_AT_penalty_energy, terminal_AT_penalty_entropy) = [0,0,0,0]
 
 
-    RNARNACount = scipy.sparse.lil_matrix((6,16),dtype=int) #np.zeros((6,4,4),dtype = int)
-
-
-    DNADNACount = scipy.sparse.lil_matrix((4,16),dtype=int) #np.zeros((4,16),dtype = int)
-
-
-    RNADNACount = scipy.sparse.lil_matrix((8,16),dtype=int) #np.zeros((8,16),dtype = int)
-
-
-    terminalAUATCount = scipy.sparse.lil_matrix((1,2),dtype=int)
-
-
-    unknownCount = scipy.sparse.lil_matrix((1,1),dtype=int) #np.zeros((1,1), dtype = int)
-
+    RNARNACount = sp.lil_matrix((6,16),dtype=int) #np.zeros((6,4,4),dtype = int)
+    DNADNACount = sp.lil_matrix((4,16),dtype=int) #np.zeros((4,16),dtype = int)
+    RNADNACount = sp.lil_matrix((8,16),dtype=int) #np.zeros((8,16),dtype = int)
+    terminalAUATCount = sp.lil_matrix((1,2),dtype=int)
+    unknownCount = sp.lil_matrix((1,1),dtype=int) #np.zeros((1,1), dtype = int)
     bondFECounts = [[RNARNACount, DNADNACount, RNADNACount, terminalAUATCount, unknownCount]]
-
     stemFECounts = bondFECounts*numStems
 
 
@@ -409,231 +445,227 @@ def isComplementary(x,y):
     return(False)
 
 
+def createSTable(sequence):
 
-    def createSTable(sequence):
-        numNt = numNt1= len(sequence)
+    numNt = len(sequence)
 
-        seqInNum  = np.array([1 if sequence[i] == 'A' else
+    seqInNum  = np.array([1 if sequence[i] == 'A' else
                               2 if sequence[i] == 'C' else
                               3 if sequence[i] == 'G' else
                               4 if sequence[i] == 'U' else
                               0 for i in range(numNt)])
 
-        minBPInStem = 2
-        minNtsInHairpin = 3
-        substems = 'all'
-        maxNumStems = 10**4, #to preallocate space for STable.
-        STableStructure = [None]*maxNumStems #first column of STable
-        STableBPs = [None]*maxNumStems #second column of STable
-        onlyConsiderSubstemsFromEdges = True
-        onlyAllowSubsetsOfLongestStems = True
+    minBPInStem = 2
+    minNtsInHairpin = 3
+    substems = 'all'
+    maxNumStems = 10**4 #to preallocate space for STable.
+    STableStructure = [None]*maxNumStems #first column of STable
+    STableBPs = [None]*maxNumStems #second column of STable
+    onlyConsiderSubstemsFromEdges = True
+    onlyAllowSubsetsOfLongestStems = True
 
-        B = np.zeros((numNt,numNt)) #matrix describing which bases are allowed to bond to which others
-        for i in range(numNt):
-            for j in range(numNt):
+    B = np.zeros((numNt,numNt)) #matrix describing which bases are allowed to bond to which others
+    for i in range(numNt):
+        for j in range(numNt):
                 if isComplementary(seqInNum[i], seqInNum[j]):
                     B[i,j] = 1
                     B[j,i] = 1
 
-        numStems = 0
+    numStems = 0
 
 
-        BPsAlreadyConsidered = [] #so we avoid subsets of stems until we consider them explicitly later
-        maxI = numNt - 2*minBPInStem - minNtsInHairpin + 1 #we need at least minBPInStem consecutive base pairs binding
+    BPsAlreadyConsidered = [] #so we avoid subsets of stems until we consider them explicitly later
+    maxI = numNt - 2*minBPInStem - minNtsInHairpin + 1 #we need at least minBPInStem consecutive base pairs binding
 
-        for i in range(maxI):
-            minJ = i + 2*minBPInStem + minNtsInHairpin - 2
-            for j in range(numNt - 1, minJ, -1): #range(start,stop,step)
+    for i in range(maxI):
+        minJ = i + 2*minBPInStem + minNtsInHairpin - 2
+        for j in range(numNt - 1, minJ, -1): #range(start,stop,step)
                 #so for example, if we have numNt = 7, minBPInStem = 2, minNtsInHairpin = 3, the only possibility
                 #is a hairpin with 0 bonded to 6, and 1 to 5
-                if B[i,j] == 1: #if they can bond
+            if B[i,j] == 1: #if they can bond
 
-                    if [i,j] not in BPsAlreadyConsidered:
+                if [i,j] not in BPsAlreadyConsidered:
 #                        BPsAlreadyConsidered.append([i,j]) #unnecessary since we definitely won't consider this bp again
 
-                        currentStemI = [i]
-                        currentStemJ = [j]
-                        listOfPairs = [[i,j]]
+                    currentStemI = [i]
+                    currentStemJ = [j]
+                    listOfPairs = [[i,j]]
 
                         #now try to lengthen the stem, to include nts i + lenStem and j - lenStem
-                        lenStem = 0 #lenStem is one less than the number of bps in a stem.
-                        endOfStem = False
-                        while not endOfStem:
-                            lenStem += 1
-                            newI = i + lenStem
-                            newJ = j - lenStem
-                            if (newI > numNt - 1 or newJ < 0 or #if we've gone beyond the edges of the RNA
-                                newJ - newI <= minNtsInHairpin or #or the bps are too close together
-                                B[newI, newJ] == 0): #or the bps can't actually bind
+                    lenStem = 0 #lenStem is one less than the number of bps in a stem.
+                    endOfStem = False
+                    while not endOfStem:
+                        lenStem += 1
+                        newI = i + lenStem
+                        newJ = j - lenStem
+                        if (newI > numNt - 1 or newJ < 0 or #if we've gone beyond the edges of the RNA
+                            newJ - newI <= minNtsInHairpin or #or the bps are too close together
+                            B[newI, newJ] == 0): #or the bps can't actually bind
 
-                                endOfStem = True
-                                lenStem -= 1 #to correct for adding one earlier
-                            else:
-                                currentStemI.append(newI)
-                                currentStemJ.append(newJ)
-                                listOfPairs.append([newI,newJ])
-                                BPsAlreadyConsidered.append([newI, newJ])
+                            endOfStem = True
+                            lenStem -= 1 #to correct for adding one earlier
+                        else:
+                            currentStemI.append(newI)
+                            currentStemJ.append(newJ)
+                            listOfPairs.append([newI,newJ])
+                            BPsAlreadyConsidered.append([newI, newJ])
                         #now that we've finished making the longest possible stem starting with the base pair i,j
                         #add that stem to STable
-                        if len(currentStemI) >= minBPInStem:
-                            STableStructure[numStems] = currentStemI + currentStemJ
-                            STableBPs[numStems] = listOfPairs
-                            numStems += 1
+                    if len(currentStemI) >= minBPInStem:
+                        STableStructure[numStems] = currentStemI + currentStemJ
+                        STableBPs[numStems] = listOfPairs
+                        numStems += 1
 
-        if onlyAllowSubsetsOfLongestStems:
+    if onlyAllowSubsetsOfLongestStems:
             #remove all stems but the longest stems so that in the next step we add
             #only the subsets of the longest stems
 
-            maxLengthStem = minBPInStem
-            for i in range(numStems):
-                if len(STableStructure[i])/2 > maxLengthStem:
+        maxLengthStem = minBPInStem
+        for i in range(numStems):
+            if len(STableStructure[i])/2 > maxLengthStem:
                     maxLengthStem = len(STableStructure[i])/2
 
-            minMaxLengthStem = 16 #don't chop off stems of length more than minMaxLengthStem
-            maxLengthStem = min(maxLengthStem,minMaxLengthStem);
-            STableBPs = [STableBPs[i] for i in range(numStems) if len(STableStructure[i])/2 >= maxLengthStem]
-            STableStructure = [STableStructure[i] for i in range(numStems) if len(STableStructure[i])/2 >= maxLengthStem]
-            numStems = len(STableStructure)
+        minMaxLengthStem = 16 #don't chop off stems of length more than minMaxLengthStem
+        maxLengthStem = min(maxLengthStem,minMaxLengthStem);
+        STableBPs = [STableBPs[i] for i in range(numStems) if len(STableStructure[i])/2 >= maxLengthStem]
+        STableStructure = [STableStructure[i] for i in range(numStems) if len(STableStructure[i])/2 >= maxLengthStem]
+        numStems = len(STableStructure)
 
             #since we preallocate space, need to make more empty room since we just removed all extra space
-            STableBPs += [None]*maxNumStems
-            STableStructure += [None]*maxNumStems
+        STableBPs += [None]*maxNumStems
+        STableStructure += [None]*maxNumStems
 
 
-        for i in range(numStems):
-            fullStemI = STableStructure[i] #the full stem we're considering
-            lenStem = int(len(fullStemI)/2)
+    for i in range(numStems):
+        fullStemI = STableStructure[i] #the full stem we're considering
+        lenStem = int(len(fullStemI)/2)
 
             #What substems should we consider? This is given by the substems argument to the code
-            if substems == 'all':
-                minBPInStemSub = minBPInStem
-            else: #then substems is an integer
-                minBPInStemSub = max(lenStem - substems,minBPInStem)
+        if substems == 'all':
+            minBPInStemSub = minBPInStem
+        else: #then substems is an integer
+            minBPInStemSub = max(lenStem - substems,minBPInStem)
 
             #we can make substems of length lengthStem-1 till minBPInStem.
-            for j in range(1,lenStem-minBPInStemSub+1): #There are j possible lengths.
+        for j in range(1,lenStem-minBPInStemSub+1): #There are j possible lengths.
                 #j also tells us how much shorter the substem is compared to the full stem.
-                possSubstemCounters = np.arange(j+1)
-                if onlyConsiderSubstemsFromEdges:
-                    possSubstemCounters = [0,j]
+            possSubstemCounters = np.arange(j+1)
+            if onlyConsiderSubstemsFromEdges:
+                possSubstemCounters = [0,j]
 
-                for k in possSubstemCounters: #substems come from getting rid of either edge.
-                    truncatedStemI = fullStemI[k:lenStem-j+k] + fullStemI[lenStem+k:len(fullStemI)-j+k]
+            for k in possSubstemCounters: #substems come from getting rid of either edge.
+                truncatedStemI = fullStemI[k:lenStem-j+k] + fullStemI[lenStem+k:len(fullStemI)-j+k]
                     #truncatedStemI is the truncated stem. Add it to STable
-                    currentStemI = truncatedStemI[:int(len(truncatedStemI)/2)]
-                    currentStemJ = truncatedStemI[int(len(truncatedStemI)/2):]
-                    STableStructure[numStems] = currentStemI + currentStemJ
+                currentStemI = truncatedStemI[:int(len(truncatedStemI)/2)]
+                currentStemJ = truncatedStemI[int(len(truncatedStemI)/2):]
+                STableStructure[numStems] = currentStemI + currentStemJ
 
-                    listOfPairs = [[currentStemI[0],currentStemJ[0]]]
-                    for l in range(1,len(currentStemI)):
-                        listOfPairs.append([currentStemI[l],currentStemJ[l]])
-                    STableBPs[numStems] = listOfPairs
-                    numStems += 1
+                listOfPairs = [[currentStemI[0],currentStemJ[0]]]
+                for l in range(1,len(currentStemI)):
+                    listOfPairs.append([currentStemI[l],currentStemJ[l]])
+                STableBPs[numStems] = listOfPairs
+                numStems += 1
 
         #remove preallocated space
-        STableBPs = [STableBPs[i] for i in range(numStems)]
-        STableStructure = [STableStructure[i] for i in range(numStems)]
+    STableBPs = [STableBPs[i] for i in range(numStems)]
+    STableStructure = [STableStructure[i] for i in range(numStems)]
 
-        return(seqInNum, numStems, STableStructure, STableBPs)
+    return(seqInNum, numStems, STableStructure, STableBPs)
 
-    def makeCompatibilityMatrix(numStems, numSequences, STableStructure, STableBPs):
-# =============================================================================
-#         Defines a matrix C of numStems x numStems where the ij'th element is 1
-#        if stems i and j can coexist in the same structure and 0 otherwise.
-#        We set the diagonal elements to 1.
-# =============================================================================
-        minNtsInHairpin = 3
-        frozenStems = self.frozenStems
-        linkedStems = self.linkedStems
-        allowPseudoknots = True
+def makeCompatibilityMatrix(numStems, numSequences, STableStructure, STableBPs):
+
+    minNtsInHairpin = 3
+    frozenStems = []# the stems that we would like to keep fixed
+    allowPseudoknots = True
 
 
-        C = np.zeros((numStems,numStems), dtype = bool)
-        for i in range(numStems):
-            for j in range(i,numStems):
-                if i == j:
-                    C[i,j] = 1
-                    C[j,i] = 1
-                elif not twoListsShareElement(STableStructure[i],STableStructure[j]):
-                    C[i,j] = 1
-                    C[j,i] = 1
-                    disallowPseudoknotsIJ = not allowPseudoknots
-                    if numSequences > 1:
-                        if linkedStems[i] or linkedStems[j]:
-                            disallowPseudoknotsIJ = False
-                    if disallowPseudoknotsIJ:
+    C = np.zeros((numStems,numStems), dtype = bool)
+    for i in range(numStems):
+        for j in range(i,numStems):
+            if i == j:
+                C[i,j] = 1
+                C[j,i] = 1
+            elif not twoListsShareElement(STableStructure[i],STableStructure[j]):
+                C[i,j] = 1
+                C[j,i] = 1
+                disallowPseudoknotsIJ = not allowPseudoknots
+                if numSequences > 1:
+                    if linkedStems[i] or linkedStems[j]:
+                        disallowPseudoknotsIJ = False
 
-                        a = STableStructure[i][0]
-                        b = STableStructure[i][int(len(STableStructure[i]/2))]
-                        c = STableStructure[j][0]
-                        d = STableStructure[j][int(len(STableStructure[j]/2))]
+                if disallowPseudoknotsIJ:
 
-                        if c < a: #switch around labels so we have c>a
-                            a = STableStructure[j][0]
-                            b = STableStructure[j][int(len(STableStructure[j]/2))]
-                            c = STableStructure[i][0]
-                            d = STableStructure[i][int(len(STableStructure[i]/2))]
+                    a = STableStructure[i][0]
+                    b = STableStructure[i][int(len(STableStructure[i]/2))]
+                    c = STableStructure[j][0]
+                    d = STableStructure[j][int(len(STableStructure[j]/2))]
 
-                        if (a<c and c<b and b<d):
-                            C[i,j] = 0
-                            C[j,i] = 0
+                    if c < a: #switch around labels so we have c>a
+                        a = STableStructure[j][0]
+                        b = STableStructure[j][int(len(STableStructure[j]/2))]
+                        c = STableStructure[i][0]
+                        d = STableStructure[i][int(len(STableStructure[i]/2))]
+
+                    if (a<c and c<b and b<d):
+                        C[i,j] = 0
+                        C[j,i] = 0
 
                     #make sure each hairpin has at least minBPInHairpin unpaired bps in it.
                     #Right now, this only constrains pairwise compatible regions, but it's a start
-                    iHairpin = list(range(STableStructure[i][int(len(STableStructure[i])/2) - 1] + 1,
+                iHairpin = list(range(STableStructure[i][int(len(STableStructure[i])/2) - 1] + 1,
                                          STableStructure[i][int(len(STableStructure[i])/2)]))
                     #The unpaired nts between the start and end of stem i
-                    jHairpin = list(range(STableStructure[j][int(len(STableStructure[j])/2) - 1] + 1,
+                jHairpin = list(range(STableStructure[j][int(len(STableStructure[j])/2) - 1] + 1,
                                          STableStructure[j][int(len(STableStructure[j])/2)]))
                     #same for stem j
 
                     #if the number of unpaired nts is less than minNtsInHairpin
-                    if (len(np.setdiff1d(iHairpin,STableStructure[j])) < minNtsInHairpin or
-                        len(np.setdiff1d(jHairpin,STableStructure[i])) < minNtsInHairpin):
-                        C[i,j] = 0
-                        C[j,i] = 0
+                if (len(np.setdiff1d(iHairpin,STableStructure[j])) < minNtsInHairpin or
+                    len(np.setdiff1d(jHairpin,STableStructure[i])) < minNtsInHairpin):
+                    C[i,j] = 0
+                    C[j,i] = 0
 
         #That does it for the basic compatibility matrix.
 
-        if frozenStems:
-            for i in range(numStems): #for each stem
-                if C[i,i]: #not important here, but useful when we repeat this process after the next block.
-                    for j in range(len(frozenStems)): #for each set of stems that need to be included
-                        compatibleWithFrozen = False #is stem i compatible with at least one of the stems
+    if frozenStems:
+        for i in range(numStems): #for each stem
+            if C[i,i]: #not important here, but useful when we repeat this process after the next block.
+                for j in range(len(frozenStems)): #for each set of stems that need to be included
+                    compatibleWithFrozen = False #is stem i compatible with at least one of the stems
                         #out of the j'th list in frozenStems? It needs to be (for all j) to be included in any structure.
-                        for k in range(len(frozenStems[j])):
-                            if C[i,frozenStems[j][k]]:
-                                compatibleWithFrozen = True #it's compatible with at least one of the stems
-                                break
+                    for k in range(len(frozenStems[j])):
+                        if C[i,frozenStems[j][k]]:
+                            compatibleWithFrozen = True #it's compatible with at least one of the stems
+                            break
 
-                        if not compatibleWithFrozen: #if for any set of regions one of which needs to be included,
+                    if not compatibleWithFrozen: #if for any set of regions one of which needs to be included,
                             #region i isn't compatible with any of them, we can't include it in our structure
-                            C[i,:] = 0
-                            C[:,i] = 0
+                        C[i,:] = 0
+                        C[:,i] = 0
 
-        for i in range(numStems):
-            for j in range(i+1,numStems):
-                if C[i,j]: #not worth going through this code if we already know the regions aren't compatible
-                    combinedBPs = STableBPs[i] + STableBPs[j]
-                    combinedStem = bpsList2structure(combinedBPs)
-                    if len(combinedStem) == 1: #then the combined stems form one single stem
-                        C[i,j] = 0
-                        C[j,i] = 0
+    for i in range(numStems):
+        for j in range(i+1,numStems):
+            if C[i,j]: #not worth going through this code if we already know the regions aren't compatible
+                combinedBPs = STableBPs[i] + STableBPs[j]
+                combinedStem = bpsList2structure(combinedBPs)
+                if len(combinedStem) == 1: #then the combined stems form one single stem
+                    C[i,j] = 0
+                    C[j,i] = 0
 
-        if frozenStems:
-            for i in range(numStems): #for each stem
-                if C[i,i]:
-                    for j in range(len(frozenStems)): #for each set of stems that need to be included
-                        compatibleWithFrozen = False #is stem i compatible with at least one of the stems
+    if frozenStems:
+        for i in range(numStems): #for each stem
+            if C[i,i]:
+                for j in range(len(frozenStems)): #for each set of stems that need to be included
+                    compatibleWithFrozen = False #is stem i compatible with at least one of the stems
                         #out of the j'th list in frozenStems? It needs to be (for all j) to be included in any structure.
-                        for k in range(len(frozenStems[j])):
-                            if C[i,frozenStems[j][k]]:
-                                compatibleWithFrozen = True #it's compatible with at least one of the stems
-                                break
+                    for k in range(len(frozenStems[j])):
+                        if C[i,frozenStems[j][k]]:
+                            compatibleWithFrozen = True #it's compatible with at least one of the stems
+                            break
 
-                        if not compatibleWithFrozen: #if for any set of regions one of which needs to be included,
+                    if not compatibleWithFrozen: #if for any set of regions one of which needs to be included,
                             #region i isn't compatible with any of them, we can't include it in our structure
-                            C[i,:] = 0
-                            C[:,i] = 0
+                        C[i,:] = 0
+                        C[:,i] = 0
 
-        return(C)
+    return(C)

@@ -15,17 +15,16 @@ def initialize(sequence):
     #                        Sequence in Numbers
 
     # Rename variables/information that we will need in our Gillespie algorithmn
-    numStems, sequenceInNumbers, STableBPs, STablesStructure = kF.createSTable(sequence)
+    sequenceInNumbers, numStems, STableStructure, STableBPs = kF.createSTable(sequence)
 
-    compatibilityMatrix = kF.makeCompatibilityMatrix(numStems, STableBPs)
-
+    compatibilityMatrix = kF.makeCompatibilityMatrix(numStems, 1, STableStructure, STableBPs)
     stemEnergies, stemEntropies = kF.calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbers)
 
     return(STableBPs, compatibilityMatrix, stemEnergies, stemEntropies)
 
 sequence = 'AUCUGAUACUGUGCUAUGUCUGAGAUAGC'
 
-sequenceInNumbers, numStems, numStructures, STableStructure, STableBPs, compatibilityMatrix, stemEnergies, stemEntropies = initialize(sequence)
+allPossibleStems, compatibilityMatrix, stemEnergies, stemEntropies = initialize(sequence)
 
 def calculateStemTransitionRates(stemEntropies, kB, T):
     k_0 = 1.0
@@ -126,18 +125,12 @@ def MonteCarloStep(currentStructure, stemsInStructure, allPossibleStems, compati
                         print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
                     toatlFlux = r1*totalFlux - sum(transitionRates)
 
-
-
-    # Need a terminating condition:
-    # How much time can the folding take?
-    # or until structure is created?
-
-    return currentStructure, stemsInStructure, allPossibleStems, totalFlux, time, transitionRates
+    return(currentStructure, stemsInStructure, allPossibleStems, totalFlux, time, transitionRates)
 
 startingStructure = []
 stemsInStructure = []
 transRates = []
-cS, stemS, possStems, t, tflux, transRates = MonteCarloStep(startingStructure, stemsInStructure, STableBPs, compatibilityMatrix, 0, stemEntropies, 0, transRates)
+cS, stemS, possStems, t, tflux, transRates = MonteCarloStep(startingStructure, stemsInStructure, allPossibleStems, compatibilityMatrix, 0, stemEntropies, 0, transRates)
 
 start = 0
 max = 3
