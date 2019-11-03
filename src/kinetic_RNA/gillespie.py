@@ -3,7 +3,25 @@ import kineticFunctions as kF
 
 ############################### ALGORITHMN #####################################
 
-def initialize(sequence):
+
+
+class Gillespie:
+
+    def __init__(self, sequence, frozenBPs, cutoff):
+        self.sequence = sequence
+        self.frozenBPs = frozenBPs
+
+        self.STableBPs, self.compatibilityMatrix, self.stemEnergies, self.stemEntropies  = self.initialize(sequence, frozenBPs)
+        self.time = 0
+        self.startingStructure = []
+        self.stemsInStructure = []
+        self.transitionRates = []
+        self.currentStructure = []
+        self.totalFlux = 0
+        self.cutoff = cutoff
+
+
+    def initialize(self, sequence, frozenBPs):
     # Run the calculation for the free energy landscape. The calculate free energy
     # landscape function is very thorough. As for now, we are only interested in the
     # following variables:
@@ -15,125 +33,120 @@ def initialize(sequence):
     #                        Sequence in Numbers
 
     # Rename variables/information that we will need in our Gillespie algorithmn
-    sequenceInNumbers, numStems, STableStructure, STableBPs = kF.createSTable(sequence)
+        sequenceInNumbers, numStems, STableStructure, STableBPs = kF.createSTable(sequence)
+        compatibilityMatrix = kF.makeCompatibilityMatrix(numStems, 1, STableStructure, STableBPs, frozenBPs)
+        stemEnergies, stemEntropies = kF.calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbers)
 
-    compatibilityMatrix = kF.makeCompatibilityMatrix(numStems, 1, STableStructure, STableBPs)
-    stemEnergies, stemEntropies = kF.calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbers)
+        return(STableBPs, compatibilityMatrix, stemEnergies, stemEntropies)
 
-    return(STableBPs, compatibilityMatrix, stemEnergies, stemEntropies)
+    def calculateStemRates(self, values, kB, T):
+        k_0 = 1.0
+        transitionRates = []
+        for i in range(len(values)):
+            rate = k_0*np.exp(values[i]/(kB*T))
+            transitionRates.append(rate)
+        return transitionRates
 
-sequence = 'AUCUGAUACUGUGCUAUGUCUGAGAUAGC'
+    def calculateTotalFlux(self, rates):
+        totalFlux = sum(rates)
+        return totalFlux
 
-allPossibleStems, compatibilityMatrix, stemEnergies, stemEntropies = initialize(sequence)
-
-def calculateStemTransitionRates(stemEntropies, kB, T):
-    k_0 = 1.0
-    transitionRates = []
-    for i in range(len(stemEntropies)):
-        rate = k_0*np.exp(stemEntropies[i]/(kB*T))
-        transitionRates.append(rate)
-    return transitionRates
-
-def calculateTotalFlux(rates):
-    totalFlux = sum(rates)
-    return totalFlux
-
-def isCompatible(stemsInStructure, j, compatibilityMatrix):
+    def isCompatible(self, stemsInStructure, j, compatibilityMatrix):
     # Idea: could just use the compatibiliy matrix that is already created in
     # RFE.
     # nextMove [[ ntd i, ntd j]]
     # PartiallyFoldedSequence = [[a, b], [c, d], [e, f]....]
     # convert to a list of numbers
-    for i in range(len(stemsInStructure)):
-        index = stemsInStructure[i]
-        if compatibilityMatrix[index, j] == 0:
-            return False
-    return True
+        for i in range(len(stemsInStructure)):
+            index = stemsInStructure[i]
+            if compatibilityMatrix[index, j] == 0:
+                return False
+        return True
 
-def MonteCarloStep(currentStructure, stemsInStructure, allPossibleStems, compatibilityMatrix, time, stemEntropies, totalFlux, transitionRates):
+
+    def MonteCarloStep(self):
     # Following Dykeman 2015 (Kfold) paper
-    if len(currentStructure) == 0:
-        r1 = np.random.random()
-        r2 = np.random.random()
-        transitionRates = calculateStemTransitionRates(stemEntropies, kB =  0.0019872, T = 310.15)
-        totalFlux = calculateTotalFlux(transitionRates)
-        time -= np.log(r2)/totalFlux
-        for i in range(len(transitionRates)):
-            trial = sum(transitionRates[:i])
-            if  trial >= r1*totalFlux:
-                print('Forming stem...')
-                nextMove = allPossibleStems[i]
-                currentStructure.append(nextMove)
-                stemsInStructure.append(i)
-                # remove the chosen stem from the list
-                del allPossibleStems[i]
-                del transitionRates[i]
 
-                for k in range(len(nextMove)):
-                    print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
-                totalFlux = r1*totalFlux - sum(transitionRates[:i])
-                break
+        if len(self.currentStructure) == 0:
+            r1 = np.random.random()
+            r2 = np.random.random()
+            ratesForm = self.calculateStemRates(self.stemEntropies, kB =  0.0019872, T = 310.15)
+            ratesBreak = self.calculateStemRates(self.stemEnergies, kB = 0.0019872, T = 310.15)
 
-    else:
-        r1 = np.random.random()
-        r2 = np.random.random()
-        totalFlux = totalFlux
-        time -= np.log(r2)/totalFlux
-        for i in range(len(transitionRates)):
-            trial = sum(transitionRates[:i])
-            if  trial >= r1*totalFlux:
-                nextMove = allPossibleStems[i]
-                if isCompatible(stemsInStructure, i, compatibilityMatrix):
+            self.totalFlux = self.calculateTotalFlux(ratesForm)
+            self.time -= np.log(r2)/self.totalFlux
+
+            for i in range(len(ratesForm))):
+
+                trial = sum(ratesForm[:i])
+
+                if  trial >= r1*self.totalFlux:
                     print('Forming stem...')
-                    if nextMove not in currentStructure:
-                        currentStructure.append(nextMove)
-                        stemsInStructure.append(i)
-                        # remove the stem and the rate
-                        # idea maybe let's combine these arrays
-                        del allPossibleStems[i]
-                        del transitionRates[i]
+                    nextMove = self.STableBPs[i]
+                    self.currentStructure.append(nextMove)
+                    self.stemsInStructure.append(i)
+                # remove the chosen stem from the list
+                    del self.STableBPs[i]
+                    del self.ratesFrom[i]
 
-                        for k in range(len(nextMove)):
-                            print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
-                        totalFlux = r1*totalFlux - sum(transitionRates[:i])
-                        break
-                else:
-
-                    inCompatible = []
-                    # because our next move was incompatible with the current move, let's break
-                    # remove the incompatible one and add the new one
-                    for j in range(len(stemsInStructure)):
-                        # nextMove has index of the ith stem so we use i here
-                        if compatibilityMatrix[j, i] == 0:
-                            inCompatible.append(j)
-                    inCompList = [allPossibleStems[m] for m in range(len(inCompatible))]
-                    print('Breaking stems...%s' %(str(inCompList)))
-
-                    to_delete = sorted(inCompatible)
-                    for d in to_delete:
-                        del currentStructure[d]
-                        del stemsInStructure[d]
-
-                    if nextMove not in currentStructure:
-                        currentStructure.append(i) # add the nextMove
-                        stemsInStructure.append(i)
-                        del allPossibleStems[i]
-                        del transitionRates[i]
-
-                    print('Pairing stems...')
                     for k in range(len(nextMove)):
                         print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
-                    toatlFlux = r1*totalFlux - sum(transitionRates)
+                        self.totalFlux = r1*self.totalFlux - sum(ratesForm[:i])
+            break
 
-    return(currentStructure, stemsInStructure, allPossibleStems, totalFlux, time, transitionRates)
+        else:
+            r1 = np.random.random()
+            r2 = np.random.random()
+            self.time -= np.log(r2)/self.totalFlux
+            for i in range(len(ratesForm)):
+                trial = sum(ratesForm[:i])
+                if  trial >= r1*totalFlux:
+                    nextMove = allPossibleStems[i]
+                    if isCompatible(self.stemsInStructure, i, self.compatibilityMatrix):
+                        print('Forming stem...')
+                        if nextMove not in self.currentStructure:
+                            self.currentStructure.append(nextMove)
+                            self.stemsInStructure.append(i)
+                        # remove the stem and the rate
+                        # idea maybe let's combine these arrays
+                            del self.STableBps[i]
+                            del self.ratesForm[i]
 
-startingStructure = []
-stemsInStructure = []
-transRates = []
-cS, stemS, possStems, t, tflux, transRates = MonteCarloStep(startingStructure, stemsInStructure, allPossibleStems, compatibilityMatrix, 0, stemEntropies, 0, transRates)
+                            for k in range(len(nextMove)):
+                                print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
+                                self.totalFlux = r1*self.totalFlux - sum(self.ratesForm[:i])
+                        break
 
-start = 0
-max = 3
-while start < max:
-    cS, stemS, possStems, t, tflux, transRates = MonteCarloStep(cS, stemS, possStems, compatibilityMatrix, t, stemEntropies, tflux, transRates)
-    start += 1
+                    else:
+                        inCompatible = []
+                    # because our next move was incompatible with the current move, let's break
+                    # remove the incompatible one and add the new one
+                        for j in range(len(self.stemsInStructure)):
+                        # nextMove has index of the ith stem so we use i here
+                            if self.compatibilityMatrix[j, i] == 0:
+                                inCompatible.append(j)
+                        inCompList = [self.STableBPs[m] for m in range(len(inCompatible))]
+                        print('Breaking stems...%s' %(str(inCompList)))
+
+                        to_delete = sorted(inCompatible)
+                            for d in to_delete:
+                                del self.currentStructure[d]
+                                del self.stemsInStructure[d]
+
+                        if nextMove not in self.currentStructure:
+                            self.currentStructure.append(i) # add the nextMove
+                            self.stemsInStructure.append(i)
+                            del self.STableBPs[i]
+                            del self.ratesForm[i]
+
+                            print('Pairing stems...')
+                            for k in range(len(nextMove)):
+                                print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
+                                self.toatlFlux = r1*self.totalFlux - sum(ratesForm)
+
+    return(self)
+
+    while self.time < self.cutoff:
+        MonteCarloStep()
+
+Gillespie('AUCUGAUACUGUGCUAUGUCUGAGAUAGC', [], 3)

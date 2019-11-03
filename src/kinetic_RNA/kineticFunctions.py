@@ -572,10 +572,10 @@ def createSTable(sequence):
 
     return(seqInNum, numStems, STableStructure, STableBPs)
 
-def makeCompatibilityMatrix(numStems, numSequences, STableStructure, STableBPs):
+def makeCompatibilityMatrix(numStems, numSequences, STableStructure, STableBPs, fixedBPs):
 
     minNtsInHairpin = 3
-    frozenStems = []# the stems that we would like to keep fixed
+    frozenStems = fixedBPs
     allowPseudoknots = True
 
 
