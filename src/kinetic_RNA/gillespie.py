@@ -178,24 +178,42 @@ class Gillespie:
             self.MonteCarloStep()
         return(self.currentStructure)
 
+    def flatten(self, x):
+        out = []
+        for i in range(len(x)):
+            out.append(x[i][0])
+            out.append(x[i][1])
+        return out
+
     def avgRunGillespie(self, N):
         # N - number of trials
-        # find the output of the structure and keep track of each output and the frequency of these outputs
-        arrayOfOutputs = []
-        frequencyOfOutputs = []
+        # find the output of the structure and keep track of each output and the frequency of these output
         i = 0
+        arrayOfOutputs = []
+
         while i < N:
-            output = np.ravel(self.runGillespie())
+            output = self.flatten(self.runGillespie()[0])
             arrayOfOutputs.append(output)
             i +=1
+
         # now find the number of times each output occured in our sampling process
+        frequencyOfOutputs = []
         uniqueOutputs = []
-        for i in range(len(arrayOfOutputs)):
-            out = arrayOfOutputs[i]
-            if out not in uniqueOutputs:
+        for j in range(len(arrayOfOutputs)):
+            out = arrayOfOutputs[j]
+            if len(uniqueOutputs) == 0:
                 uniqueOutputs.append(out)
                 frequencyOfOutputs.append(arrayOfOutputs.count(out))
-        return arrayOfOutputs, frequencyOfOutputs
+            else:
+                notFound = 0
+                for k in range(len(uniqueOutputs)):
+                    if out == uniqueOutputs[k]:
+                        notFound = 1
+                if notFound == 0:
+                    uniqueOutputs.append(out)
+                    frequencyOfOutputs.append(arrayOfOutputs.count(out))
+
+        return uniqueOutputs, frequencyOfOutputs
 
 
 
@@ -205,10 +223,10 @@ class Gillespie:
 # GAUGCGCAAAAACAUUCCCUCAUCACAAUU  ((((................))))...... [[0, 23], [1, 22], [2, 21], [3, 20]]
 
 G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], 2)
-structure = G.runGillespie()
-print('Sequence:' , G.sequence)
-print('Structure:', structure)
+#structure = G.runGillespie()
+#print('Sequence:' , G.sequence)
+#print('Structure:', structure)
 
-#outputs, frequencies = G.avgRunGillespie(100)
-
-#print(outputs[np.argmax(frequencies)])
+outputs, frequencies = G.avgRunGillespie(100)
+print(outputs)
+print(frequencies)
