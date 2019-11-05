@@ -178,34 +178,37 @@ class Gillespie:
             self.MonteCarloStep()
         return(self.currentStructure)
 
-    def dotbracket(self, structure):
-        structure = structure[0]
-        dots = [0]*len(structure)
-        for i in range(len(structure)):
-            val1 = int(structure[i][0])
-            val2 = int(structure[i][1])
-            if val1 > val2:
-                dots[val1] = 2
-                dots[val2] = 1
-            else:
-                dots[val2] = 1
-                dots[val1] = 2
-        bra = ''
-        for i in range(len(dots))+1:
-            if dots[i] == 1:
-                bra += '('
-            elif dots[i] == 2:
-                bra += ')'
-            else:
-                bra += '.'
-        return bra
+    def avgRunGillespie(self, N):
+        # N - number of trials
+        # find the output of the structure and keep track of each output and the frequency of these outputs
+        arrayOfOutputs = []
+        frequencyOfOutputs = []
+        i = 0
+        while i < N:
+            output = np.ravel(self.runGillespie())
+            arrayOfOutputs.append(output)
+            i +=1
+        # now find the number of times each output occured in our sampling process
+        uniqueOutputs = []
+        for i in range(len(arrayOfOutputs)):
+            out = arrayOfOutputs[i]
+            if out not in uniqueOutputs:
+                uniqueOutputs.append(out)
+                frequencyOfOutputs.append(arrayOfOutputs.count(out))
+        return arrayOfOutputs, frequencyOfOutputs
 
 
 
 
-# answer: [[0, 16], [1, 15], [2, 14], [3, 13], [4, 12], [5, 11], [6, 10]]
-# dot bracket      (((((((...))))))).............
+# CGGUCGGAACUCGAUCGGUUGAACUCUAUC  (((((((...)))))))............. [[0, 16], [1, 15], [2, 14], [3, 13], [4, 12], [5, 11], [6, 10]]
+# GUUAGCACAUCGAGCGGGCAAUAUGUACAU  (((.((.......)).)))........... [[0, 18], [1, 17], [2, 16], [4, 14], [5, 13] ]
+# GAUGCGCAAAAACAUUCCCUCAUCACAAUU  ((((................))))...... [[0, 23], [1, 22], [2, 21], [3, 20]]
+
 G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], 2)
 structure = G.runGillespie()
 print('Sequence:' , G.sequence)
 print('Structure:', structure)
+
+#outputs, frequencies = G.avgRunGillespie(100)
+
+#print(outputs[np.argmax(frequencies)])
