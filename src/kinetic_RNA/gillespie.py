@@ -1,6 +1,7 @@
 import numpy as np
 import kineticFunctions as kF
 
+
 ############################### ALGORITHMN #####################################
 
 class Gillespie:
@@ -16,6 +17,11 @@ class Gillespie:
         self.totalFlux = 0
         self.cutoff = cutoff
         self.time = 0
+        self.makeOutputFile = True
+
+        if self.makeOutputFile:
+            self.f = open('output.txt', 'w+')
+            self.f.write('Sequence: %s\n' %(self.sequence))
 
 
     def initialize(self, sequence, frozenBPs):
@@ -35,6 +41,13 @@ class Gillespie:
         stemEnergies, stemEntropies = kF.calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbers)
 
         return(STableBPs, compatibilityMatrix, stemEnergies, stemEntropies)
+
+    def flatten(self, x):
+        out = []
+        for i in range(len(x)):
+            out.append(x[i][0])
+            out.append(x[i][1])
+        return out
 
     def calculateStemRates(self, values, kB, T):
         k_0 = 1.0
@@ -73,8 +86,6 @@ class Gillespie:
         # if I go through the whole sequence without finding any matches then I am good.
         return True
 
-
-
     def canAdd(self, stems, new_stem):
         s = np.ravel(stems)
         n = np.ravel(new_stem)
@@ -109,8 +120,10 @@ class Gillespie:
                         del self.STableBPs[i]
                         del self.ratesForm[i]
 
-                        #for k in range(len(nextMove)):
-                            #print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
+                        if self.makeOutputFile:
+                            self.f.write('Forming stems....\n')
+                            for k in range(len(nextMove)):
+                                self.f.write('Pair: %s - %s\n' %(str(nextMove[k][0]), str(nextMove[k][1])))
                         self.totalFlux = r1*self.totalFlux - sum(self.ratesForm[:i]) # recalculate the flux
                         break
 
@@ -130,17 +143,20 @@ class Gillespie:
 
                     nextMove = self.STableBPs[i]
                     if len(self.isCompatible(self.stemsInStructure, i, self.compatibilityMatrix)) == 0:
-                        if self.canAdd(self.currentStructure, nextMove):
+                        if self.canAdd(self.currentStructure, nextMove) and i not in self.stemsInStructure:
                             if self.checkFrozen(nextMove):
-                                #print('Forming stemss...')
+
                                 self.currentStructure.append(nextMove)
                                 self.stemsInStructure.append(i)
                         # remove the stem and the rate
                                 del self.STableBPs[i]
                                 del self.ratesForm[i]
+                                if self.makeOutputFile:
+                                    self.f.write('Forming stems...\n')
+                                    for k in range(len(nextMove)):
+                                        self.f.write('Pair: %s - %s\n' %(str(nextMove[k][0]), str(nextMove[k][1])))
 
-                                #for k in range(len(nextMove)):
-                                    #print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
+
                                 self.totalFlux = r1*self.totalFlux - sum(self.ratesForm[:i])
                     else:
                         # The next move is not compatible with the the current folded structure. So we will need to break the incompatible parts
@@ -153,21 +169,22 @@ class Gillespie:
                         if len(inCompList) < len(self.currentStructure):
                              # if we need to break more stems than have formed then this is not a good move at all.
                              if self.checkFrozen(inCompList): #check to make sure we are allowed to break the stems
-                                #print('Breaking stems...%s' %(str(inCompList)))
-
+                                if self.makeOutputFile:
+                                    self.f.write('Breaking stems...%s\n' %(str(inCompList))):
                                 for d in range(len(inCompList)):
                                     del self.currentStructure[d]
                                     del self.stemsInStructure[d]
 
-                                if self.canAdd(self.currentStructure, nextMove):
+                                if self.canAdd(self.currentStructure, nextMove) and i not in self.stemsInStructure:
                                     if self.checkFrozen(nextMove):
                                         self.currentStructure.append(nextMove) # add the next move to the current structure
                                         self.stemsInStructure.append(i)
                                         del self.STableBPs[i]
                                         del self.ratesForm[i]
-                                        #print('Forming stemsss...')
-                                        #for k in range(len(nextMove)):
-                                            #print('Pair: %s - %s' %(str(nextMove[k][0]), str(nextMove[k][1])))
+                                        if self.makeOutputFile:
+                                            self.f.write('Forming stems...\n')
+                                            for k in range(len(nextMove)):
+                                                self.f.write('Pair: %s - %s\n' %(str(nextMove[k][0]), str(nextMove[k][1])))
                                         self.totalFlux = r1*self.totalFlux - sum(self.ratesForm)
                                         break
         return(self)
@@ -178,12 +195,6 @@ class Gillespie:
             self.MonteCarloStep()
         return(self.currentStructure)
 
-    def flatten(self, x):
-        out = []
-        for i in range(len(x)):
-            out.append(x[i][0])
-            out.append(x[i][1])
-        return out
 
     def avgRunGillespie(self, N):
         # N - number of trials
@@ -215,18 +226,18 @@ class Gillespie:
 
         return uniqueOutputs, frequencyOfOutputs
 
-
-
-
+############################## test sequences ##################################
 # CGGUCGGAACUCGAUCGGUUGAACUCUAUC  (((((((...)))))))............. [[0, 16], [1, 15], [2, 14], [3, 13], [4, 12], [5, 11], [6, 10]]
 # GUUAGCACAUCGAGCGGGCAAUAUGUACAU  (((.((.......)).)))........... [[0, 18], [1, 17], [2, 16], [4, 14], [5, 13] ]
 # GAUGCGCAAAAACAUUCCCUCAUCACAAUU  ((((................))))...... [[0, 23], [1, 22], [2, 21], [3, 20]]
 
 G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], 2)
 #structure = G.runGillespie()
+#G.f.write(str(structure))
 #print('Sequence:' , G.sequence)
 #print('Structure:', structure)
 
-outputs, frequencies = G.avgRunGillespie(100)
+# Average Gillespie
+outputs, frequencies = G.avgRunGillespie(10)
 print(outputs)
 print(frequencies)
