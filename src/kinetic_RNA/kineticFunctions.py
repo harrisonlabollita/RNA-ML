@@ -54,6 +54,50 @@ def bpsList2structure(bpsList):
         if i == len(bpsList) - 1:
             structure.append(stem1 + stem2)
     return(structure)
+def bpsList2structBPs(bpsList):
+# =============================================================================
+#     Given a list of base pairs, put them in structBPs format, meaning take the list of base pairs
+#     and make a list of stems, where each stem is itself a list of base pairs in that stem.
+#     For exmample, a bpList would be [[1,10],[2,9],[3,8],[15,25],[16,24],[18,22],[17,23]]
+#     The corresponding structBPs would be [[[1,10],[2,9],[3,8]],[[15,25],[16,24],[17,23],[18,22]]]
+#     and the corresponding structure would be [[1,2,3,10,9,8],[15,16,17,18,25,24,23,22]]
+# =============================================================================
+
+    bpsList = sorted(bpsList)
+    structBPs = [[]]
+    startOfStem = False
+    for i in range(len(bpsList)): #for each base pair
+        firstBP = bpsList[i][0]
+        secondBP = bpsList[i][1]
+
+        if i: #i.e. if it's not the first base pair being considered
+            #check if it's a continuation of the previous stem.
+            if firstBP - structBPs[-1][-1][0] == 1:
+                if secondBP - structBPs[-1][-1][1] == 1: #we're dealing with a parallel stem.
+                    startOfStem = False
+                elif secondBP - structBPs[-1][-1][1] == -1: #antiparallel (normal) stem
+                    startOfStem = False
+                else:
+                    startOfStem = True
+            else:
+                startOfStem = True
+
+        if not startOfStem:
+            structBPs[-1].append([firstBP,secondBP])
+        else:
+            structBPs.append([[firstBP,secondBP]])
+    return(structBPs)
+
+def frozenStemsFromFrozenBPs(frozenBPs, STableBPs, numStems): #still need to check more carefully
+    if not frozenBPs:
+        return([])
+
+        #if two or more base pairs of frozenBPs are adjacent, then any stem that includes them
+        #must include all of them to be considered (otherwise there'd be no way to include the others).
+    frozenStructBPs = bpsList2structBPs(frozenBPs) #a list of frozen stems where each stem is in base-pair (bp) format
+    frozenStems = [[i for i in range(numStems) if all([k in STableBPs[i] for k in j])] for j in frozenStructBPs]
+    frozenStems = [i for i in frozenStems if i] #remove empty lists
+    return(frozenStems)
 
 def bondFreeEnergiesRNARNA():
 
@@ -577,7 +621,6 @@ def makeCompatibilityMatrix(numStems, numSequences, STableStructure, STableBPs, 
     minNtsInHairpin = 3
     frozenStems = fixedBPs
     allowPseudoknots = True
-
 
     C = np.zeros((numStems,numStems), dtype = bool)
     for i in range(numStems):
