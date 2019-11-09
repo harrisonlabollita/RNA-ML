@@ -100,20 +100,22 @@ class Gillespie:
                 return False
         return True
 
+
     def MonteCarloStep(self):
 
     # Following Dykeman 2015 (Kfold) paper
 
         if len(self.currentStructure) == 0:
             self.MemoryOfStems = self.STableBPs # this will be used for when we need to access a stem that we are breaking
-
+            self.possibleStems = []
+            C = self.compatibilityMatrix
             r1 = np.random.random()
             r2 = np.random.random()
             self.rates = self.calculateStemRates(self.stemEntropies, kB =  0.0019872, T = 310.15, kind = 1)
             self.ratesBreak = self.calculateStemRates(self.stemEnergies, kB = 0.0019872, T = 310.15, kind = 0)
             self.totalFlux = self.calculateTotalFlux(self.rates)
-
             self.time = (-1)*np.log(r2)/self.totalFlux
+            self.possibleRates = []
 
             for i in range(len(self.rates)):
 
@@ -126,10 +128,19 @@ class Gillespie:
                     self.stemsInStructure.append(i)
                     self.rates.append(self.ratesBreak[i]) # append the rate of breaking for the stem that we have just added. Now as part of our ensemble of
                                                           # of possible moves, we could choose to break this stem.
+                    for m in range(len(self.STableBPs)):
+                        if C[m, i]:
+                            if self.STableBPs[m] not in self.possibleStems:
+                                self.possibleStems.append(self.STableBPs[m])
+                                self.possibleRates.append(self.rates[m])
+
 
                 # remove the chosen stem from the list
                     del self.STableBPs[i]
                     del self.rates[i]
+
+                    for m in range(len(self.STableBPs)):
+
 
                     if self.makeOutputFile:
                         self.f.write('Forming stems....\n')
@@ -139,6 +150,7 @@ class Gillespie:
                     break
         else:
             # we will always be in this part of the code after we have made our first stem
+            # I need to remove all the possible moves from the move set.
             r1 = np.random.random()
             r2 = np.random.random()
 
