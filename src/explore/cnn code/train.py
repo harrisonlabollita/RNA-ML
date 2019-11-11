@@ -18,13 +18,9 @@ targets = 0
 def hyperparameters():
     lr = [1e-2, 1e-3, 1e-4]
     mom = [0.5, 0.7, 0.9]
-    batch_size = [30, 50, 100]
-
+    batch_size = [100, 100, 100]
     params = [lr[np.random.randint(0,3)], mom[np.random.randint(0,3)], batch_size[np.random.randint(0,3)]]
-
     return params
-
-
 
 
 def train(convNet, batch_size, Epochs, learningRate, momentum):
@@ -115,22 +111,43 @@ def train(convNet, batch_size, Epochs, learningRate, momentum):
 sessions = 9
 sess = 0
 
+paramsHistory = []
+trainingAccuracy = []
+trainingValAccuracy = []
+
 while sess <= sessions:
-    
+
     max_seq_length = 30
     num_classes = 3
 
     model = rnaConvNet.rnaConvNet(max_seq_length, num_classes)
     params = hyperparameters()
 
-
     learning_rate = params[0]
     momentum = params[1]
     batch_size = params[2]
-    epochs = 100
-
+    epochs = 50
     history = train(model, batch_size, epochs, learning_rate, momentum)
+    paramsHistory.append(params)
+    trainingAccuracy.append(history[0][-1])
+    trainingValAccuracy.append(history[0][-1]) # take the last value from the end of the training with these hyperparameters
+
     #torch.save(model.state_dict(), '/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/src/explore/cnn code/cnn_trained_model.pt')
-    p.plotmodel_loss(epochs, history[2], history[3], 'Model Loss')
-    p.plotmodel_acc(epochs, history[0], history[1], 'Model Accuracy')
+    #p.plotmodel_loss(epochs, history[2], history[3], 'Model Loss')
+    #p.plotmodel_acc(epochs, history[0], history[1], 'Model Accuracy')
     sess+=1
+
+learningRate = [paramsHistory[i][0] for i in range(len(paramsHistory))]
+mometnum = [ paramsHistory[i][1] for i in range(len(paramsHistory))]
+
+
+
+import matplotlib
+matplotlib.rc('text', usetex = True)
+matplotlib.rc('font', **{'family':'serif', 'serif':['Computer Modern Roman, Times']})
+
+plt.figure()
+plt.plot(learningRate, trainingAccuracy, 'k-', linewidth = 1, label = 'Accuracy')
+plt.plot(learningRate, trainingValAccuracy, 'r-', linewidth = 1, label = 'Val. Accuracy')
+plt.legend(loc = 'best')
+plt.show()
