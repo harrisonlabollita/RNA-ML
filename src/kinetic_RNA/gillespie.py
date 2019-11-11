@@ -37,7 +37,7 @@ class Gillespie:
 
     # Rename variables/information that we will need in our Gillespie algorithmn
         sequenceInNumbers, numStems, STableStructure, STableBPs = kF.createSTable(sequence)
-        frozenStems = kF.frozenStemsFromFrozenBPs(frozenBPs, STableBPs, numStems)
+        #frozenStems = kF.frozenStemsFromFrozenBPs(frozenBPs, STableBPs, numStems)
         compatibilityMatrix = kF.makeCompatibilityMatrix(numStems, 1, STableStructure, STableBPs, frozenStems)
         stemEnergies, stemEntropies = kF.calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbers)
         return(STableBPs, compatibilityMatrix, stemEnergies, stemEntropies)
@@ -95,9 +95,11 @@ class Gillespie:
     def canAdd(self, stems, new_stem):
         s = np.ravel(stems)
         n = np.ravel(new_stem)
+
         for i in n:
-            if i in s:
-                return False
+            for j in s:
+                if i == j:
+                    return False
         return True
 
 
@@ -139,7 +141,7 @@ class Gillespie:
                     del self.STableBPs[i]
                     del self.rates[i]
 
-                    for m in range(len(self.STableBPs)):
+                    #for m in range(len(self.STableBPs)):
 
 
                     if self.makeOutputFile:
@@ -280,7 +282,7 @@ class Gillespie:
 #    print(structure)
 
 G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], 2)
-
+print(G.STableBPs)
 #G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], 2)
 structure = G.runGillespie()
 print('Sequence:' , G.sequence)

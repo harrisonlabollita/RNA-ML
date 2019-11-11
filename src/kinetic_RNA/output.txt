@@ -1,8 +1,0 @@
-Sequence: CGGUCGGAACUCGAUCGGUUGAACUCUAUC
-Forming stems....
-Pair: 1 - 19
-Pair: 2 - 18
-Pair: 3 - 17
-Pair: 4 - 16
-Pair: 5 - 15
-Pair: 6 - 14

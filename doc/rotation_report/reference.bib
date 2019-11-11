@@ -1,0 +1,51 @@
+@article{10.3389/fgene.2019.00467,
+
+AUTHOR={Zhang, Hao and Zhang, Chunhe and Li, Zhi and Li, Cong and Wei, Xu and Zhang, Borui and Liu, Yuanning},
+
+TITLE={A New Method of RNA Secondary Structure Prediction Based on Convolutional Neural Network and Dynamic Programming},
+
+JOURNAL={Frontiers in Genetics},
+
+VOLUME={10},
+
+PAGES={467},
+
+YEAR={2019},
+
+URL={https://www.frontiersin.org/article/10.3389/fgene.2019.00467},
+
+DOI={10.3389/fgene.2019.00467},
+
+ISSN={1664-8021},
+
+ABSTRACT={In recent years, obtaining RNA secondary structure information has played an important role in RNA and gene function research. Although some RNA secondary structures can be gained experimentally, in most cases, efficient, and accurate computational methods are still needed to predict RNA secondary structure. Current RNA secondary structure prediction methods are mainly based on the minimum free energy algorithm, which finds the optimal folding state of RNA in vivo using an iterative method to meet the minimum energy or other constraints. However, due to the complexity of biotic environment, a true RNA structure always keeps the balance of biological potential energy status, rather than the optimal folding status that meets the minimum energy. For short sequence RNA its equilibrium energy status for the RNA folding organism is close to the minimum free energy status; therefore, the minimum free energy algorithm for predicting RNA secondary structure has higher accuracy. Nevertheless, in a longer sequence RNA, constant folding causes its biopotential energy balance to deviate far from the minimum free energy status. This deviation is because of its complex structure and results in a serious decline in the prediction accuracy of its secondary structure. In this paper, we propose a novel RNA secondary structure prediction algorithm using a convolutional neural network model combined with a dynamic programming method to improve the accuracy with large-scale RNA sequence and structure data. We analyze current experimental RNA sequences and structure data to construct a deep convolutional network model, and then we extract implicit features of an effective classification from large-scale data to predict the pairing probability of each base in an RNA sequence. For the obtained probabilities of RNA sequence base pairing, an enhanced dynamic programming method is applied to obtain the optimal RNA secondary structure. Results indicate that our proposed method is superior to the common RNA secondary structure prediction algorithms in predicting three benchmark RNA families. Based on the characteristics of deep learning algorithm, it can be inferred that the method proposed in this paper has a 30% higher prediction success rate when compared with other algorithms, which will be needed as the amount of real RNA structure data increases in the future.}
+}
+
+@article {Kimchi338921,
+	author = {Kimchi, Ofer and Cragnolini, Tristan and Brenner, Michael P. and Colwell, Lucy J.},
+	title = {RNA structure prediction including pseudoknots through direct enumeration of states},
+	elocation-id = {338921},
+	year = {2018},
+	doi = {10.1101/338921},
+	publisher = {Cold Spring Harbor Laboratory},
+	abstract = {The accurate prediction of RNA secondary structure from primary sequence has had enormous impact on research from the past forty years. While many algorithms are available to make these predictions, the inclusion of non-nested loops, termed pseudoknots, still poses challenges. Here, we describe a new method to compute the entire free energy landscape of secondary structures of RNA resulting from a primary RNA sequence, by combining a polymer physics model for the entropy of pseudoknots with exhaustive enumeration of the set of possible structures. Our polymer physics model can address arbitrarily complex pseudoknots and has only two free loop entropy parameters that correspond to concrete physical quantities, over an order of magnitude fewer than even the sparsest state-of-the-art algorithms. Our model outperforms previously published methods in predicting pseudoknots, while performing on par with current methods in the prediction of non-pseudoknotted structures. For RNA sequences of ~ 45 nucleotides, or ~ 90 with minimal heuristics, the complet{\textendash}e enumeration of possible secondary structures can be accomplished quickly despite the NP-complete nature of the problem.},
+	URL = {https://www.biorxiv.org/content/early/2018/06/04/338921},
+	eprint = {https://www.biorxiv.org/content/early/2018/06/04/338921.full.pdf},
+	journal = {bioRxiv}
+}
+
+@article{10.1093/nar/gkv480,
+    author = {Dykeman, Eric C.},
+    title = "{An implementation of the Gillespie algorithm for RNA kinetics with logarithmic time update}",
+    journal = {Nucleic Acids Research},
+    volume = {43},
+    number = {12},
+    pages = {5708-5715},
+    year = {2015},
+    month = {05},
+    abstract = "{In this paper I outline a fast method called KFOLD for implementing the Gillepie algorithm to stochastically sample the folding kinetics of an RNA molecule at single base-pair resolution. In the same fashion as the KINFOLD algorithm, which also uses the Gillespie algorithm to predict folding kinetics, KFOLD stochastically chooses a new RNA secondary structure state that is accessible from the current state by a single base-pair addition/deletion following the Gillespie procedure. However, unlike KINFOLD, the KFOLD algorithm utilizes the fact that many of the base-pair addition/deletion reactions and their corresponding rates do not change between each step in the algorithm. This allows KFOLD to achieve a substantial speed-up in the time required to compute a prediction of the folding pathway and, for a fixed number of base-pair moves, performs logarithmically with sequence size. This increase in speed opens up the possibility of studying the kinetics of much longer RNA sequences at single base-pair resolution while also allowing for the RNA folding statistics of smaller RNA sequences to be computed much more quickly.}",
+    issn = {0305-1048},
+    doi = {10.1093/nar/gkv480},
+    url = {https://doi.org/10.1093/nar/gkv480},
+    eprint = {http://oup.prod.sis.lan/nar/article-pdf/43/12/5708/16659220/gkv480.pdf},
+}

@@ -5,7 +5,8 @@ from scipy import sparse as sp
 
 ############################## HELPER FUNCTIONS ################################
 # Functions taken from RFE Landscape and used independuntly from the calculate
-# FE landscapre funciton in the RFE class.
+# FE landscapre funciton in the RFE class. Paper can be
+# found at (https://www.biorxiv.org/content/10.1101/338921v1).
 # Most of the comments and descriptions from functions have been removed to increase
 # readability.
 
@@ -616,10 +617,10 @@ def createSTable(sequence):
 
     return(seqInNum, numStems, STableStructure, STableBPs)
 
-def makeCompatibilityMatrix(numStems, numSequences, STableStructure, STableBPs, fixedBPs):
+def makeCompatibilityMatrix(numStems, numSequences, STableStructure, STableBPs):
 
     minNtsInHairpin = 3
-    frozenStems = fixedBPs
+    frozenStems = []
     allowPseudoknots = True
 
     C = np.zeros((numStems,numStems), dtype = bool)
@@ -712,3 +713,58 @@ def makeCompatibilityMatrix(numStems, numSequences, STableStructure, STableBPs, 
                         C[:,i] = 0
 
     return(C)
+
+
+# HELPER FUNCTIONS USED IN THE GILLESPIE ALGORITHM
+
+def calculateStemRates(values, kB, T, kind):
+    k_0 = 1.0 #adjustable constant
+    transitionRates = []
+    if kind:
+        # we are calculating the rates of forming stems, i.e.,
+        # exp(delta S/kB T)
+        for i in range(len(values)):
+            rate = [k_0 * np.exp(values[i]/ (kB* T)), 1]
+            transitionRates.append(rate)
+    else:
+        # we are calculating the rate of breaking a stem
+        # exp(delta H/ kB T)
+        for i in range(len(values)):
+            rate = [k_0*np.exp(values[i]/(kB*T)), 0]
+            transitionRates.append(rate)
+    return transitionRates
+
+def calculateTotalFlux(rates):
+    totalFlux = 0
+    for i in range(len(rates)):
+        totalFlux += rates[i][0]
+    return totalFlux
+
+def partialSum(rates):
+    partial= 0
+    for i in range(len(rates)):
+        partial += rates[i][0]
+    return partial
+
+def flattenCurrentStructure(x):
+    out = []
+    for i in range(len(x)):
+        for j in range(len(x[i])):
+            out.append(x[i][j][0])
+            out.append(x[i][j][0])
+    return out
+
+def flattenStem(x):
+    out = []
+    for i in range(len(x)):
+        out.append(x[i][0])
+        out.append(x[i][1])
+    return out
+
+def canAdd(currentStructure, new_stem):
+    s = flattenCurrentStructure(currentStructure)
+    n = flattenStem(new_stem)
+    for i in s:
+        if i in n:
+            return False
+    return True
