@@ -14,13 +14,13 @@ class Gillespie:
     # frozenBPs: stems that must be included in the final result
     # cutoff: arbitraty time to stop the gillespie algorithm
 
-    def __init__(self, sequence, frozenBPs, cutoff):
+    def __init__(self, sequence, frozen, cutoff):
 
         # initialize sequence to create energies, entropies and stem possiblities from
         # kineticFunctions library
 
         self.sequence = sequence
-        self.frozenBPs = frozenBPs
+        self.frozen = frozen
         self.STableBPs, self.compatibilityMatrix, self.stemEnergies, self.stemEntropies = self.initialize(sequence)
 
         # intialize the current structure arrays
@@ -52,11 +52,20 @@ class Gillespie:
         # Following Dykeman 2015 (https://academic.oup.com/nar/article/43/12/5708/2902645)
         # If we are making the first move then the current structure will have zero length
 
-        # if frozenStems:
+        # if frozen:
         # I will write the code to make this move happen first if the user
         # has specified a frozen stem that must be included in the structure
+        if frozen:
+            # then we have frozen stems are we need to make sure that they are included first
+            r2 = np.random.random()
+            self.rates = kF.calculateStemRates(self.stemEntropies, kB =  0.0019872, T = 310.15, kind = 1)
+            self.time = abs(np.log(r2)/totalFlux)
+            self.currentStructure.append(frozen)
 
-        if len(self.currentStructure) == 0:
+            # Need to add the frozen feature piece
+            # need to go back and check a few things
+            
+        elif len(self.currentStructure) == 0:
 
             C = self.compatibilityMatrix
             r1 = np.random.random()
@@ -148,6 +157,10 @@ class Gillespie:
         while self.time < self.cutoff:
             self.MonteCarloStep()
         return(self.currentStructure)
+
+    # TO-DO
+    # 1. Write structure to dot bracket function
+
 
 G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], 1000)
 structure = G.runGillespie()
