@@ -11,3 +11,6 @@
 *.cb2
 .*.lb
 *.bib
+*.syntex.gz
+*.run.xml
+*.fdb_latexmk
