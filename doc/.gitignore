@@ -6,11 +6,13 @@
 *.out
 *.toc
 *.fmt
+*.blg
+*.bbl
 *.fot
 *.cb
 *.cb2
 .*.lb
 *.bib
-*.syntex.gz
+*.synctex.gz
 *.run.xml
 *.fdb_latexmk
