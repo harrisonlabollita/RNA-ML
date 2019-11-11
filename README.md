@@ -1,9 +1,11 @@
-# Machine Learning for RNA Structure Prediction
-
-Exploratory research implementing machine learning alogrithms to predict the base pairs given an RNA sequence.
+# Exploratory Computational Methods for RNA Structure Prediction
 
 **Sulc Group** - Arizona State University 
 
 Harrison LaBollita - h.labollita@asu.edu
+
+In this repository, we are working on building computational tools for RNA Structure prediction. 
+
+
 
 
