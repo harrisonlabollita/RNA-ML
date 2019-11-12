@@ -717,28 +717,35 @@ def makeCompatibilityMatrix(numStems, numSequences, STableStructure, STableBPs):
 
 # HELPER FUNCTIONS USED IN THE GILLESPIE ALGORITHM
 
-def calculateStemRates(values, kB, T, kind):
-    k_0 = 1.0 #adjustable constant
-    transitionRates = []
-    if kind:
-        # we are calculating the rates of forming stems, i.e.,
-        # exp(delta S/kB T)
-        for i in range(len(values)):
-            rate = [k_0 * np.exp(values[i]/ (kB* T)), 1]
-            transitionRates.append(rate)
-    else:
-        # we are calculating the rate of breaking a stem
-        # exp(delta H/ kB T)
-        for i in range(len(values)):
-            rate = [k_0*np.exp(values[i]/(kB*T)), 0]
-            transitionRates.append(rate)
-    return transitionRates
-
 def calculateTotalFlux(rates):
     totalFlux = 0
     for i in range(len(rates)):
         totalFlux += rates[i][0]
     return totalFlux
+
+def calculateStemRates(values, kB, T, kind):
+    k_0 = 1.0 #adjustable constant
+    transitionRates = []
+    if kind:
+        # we are calculating the rates of forming stems, i.e.,
+        # exp(-delta S/kB T)
+        for i in range(len(values)):
+            rate = [k_0 * np.exp((-1)*abs(values[i])/ (kB* T)), 1]
+            transitionRates.append(rate)
+    else:
+        # we are calculating the rate of breaking a stem
+        # exp(- delta G/ kB T)
+        for i in range(len(values)):
+            rate = [k_0*np.exp((-1)*abs(values[i])/(kB*T)), 0]
+            transitionRates.append(rate)
+    return transitionRates
+
+def normalize(rates):
+    #normalization = calculateTotalFlux(rates)
+    normalization = sum(rates[:][0])
+    for i in range(len(rates)):
+        rates[i][0] /= normalization
+    return rates
 
 def partialSum(rates):
     partial= 0
@@ -768,3 +775,25 @@ def canAdd(currentStructure, new_stem):
         if i in n:
             return False
     return True
+
+def LegendreTransform(enthalpies, entropies, T):
+
+    # Need to legendre transform the enthalpy to the gibbs free energy
+    # G = H - TS
+    gibbsFreeEnergies = []
+
+    for i in range(len(enthalpies)):
+        gibbs = enthalpies[i] - T * entropies[i]
+        gibbsFreeEnergies.append(gibbs)
+
+    return gibbsFreeEnergies
+
+
+def findWhereAndBreak(currentStructure, stemToBreak):
+    #stemToBreak is a
+    index = 0
+    for i in range(len(currentStructure)):
+        if  currentStructure[i] == stemToBreak:
+            index = i # found the stem that we need to break
+    del currentStructure[index]
+    return currentStructure

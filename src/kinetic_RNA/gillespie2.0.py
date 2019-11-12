@@ -22,7 +22,9 @@ class Gillespie:
         self.sequence = sequence
         self.frozen = frozen
         self.STableBPs, self.compatibilityMatrix, self.stemEnergies, self.stemEntropies = self.initialize(sequence)
+        # need to convert the enthalpy to the gibbs free energy
 
+        self.stemGFEnergies = kF.LegendreTransform(self.stemEnergies, self.stemEntropies, 310.15)
         # intialize the current structure arrays
         self.currentStructure = []
 
@@ -55,49 +57,59 @@ class Gillespie:
         # if frozen:
         # I will write the code to make this move happen first if the user
         # has specified a frozen stem that must be included in the structure
-        if frozen:
+        #if frozen:
             # then we have frozen stems are we need to make sure that they are included first
-            r2 = np.random.random()
-            self.rates = kF.calculateStemRates(self.stemEntropies, kB =  0.0019872, T = 310.15, kind = 1)
-            self.time = abs(np.log(r2)/totalFlux)
-            self.currentStructure.append(frozen)
+            #r2 = np.random.random()
+            #self.rates = kF.calculateStemRates(self.stemEntropies, kB =  0.0019872, T = 310.15, kind = 1)
+            #self.time = abs(np.log(r2)/totalFlux)
+            #self.currentStructure.append(frozen)
 
             # Need to add the frozen feature piece
             # need to go back and check a few things
-            
-        elif len(self.currentStructure) == 0:
+
+        if len(self.currentStructure) == 0:
 
             C = self.compatibilityMatrix
             r1 = np.random.random()
             r2 = np.random.random()
-
             self.rates = kF.calculateStemRates(self.stemEntropies, kB =  0.0019872, T = 310.15, kind = 1)
-            self.ratesBreak = kF.calculateStemRates(self.stemEnergies, kB = 0.0019872, T = 310.15, kind = 0)
-
-            self.totalFlux = kF.calculateTotalFlux(self.rates)
+            self.ratesBreak = kF.calculateStemRates(self.stemGFEnergies, kB = 0.0019872, T = 310.15, kind = 0)
+            #self.totalFlux = kF.calculateTotalFlux(self.rates) # normalize the rates
+            self.totalFlux = sum(self.rates[:][0])
             self.time = abs(np.log(r2)/self.totalFlux)
 
+            # Made sure that the rates in fact sum to 1!
             # loop through all of the rates and partially sum them until we
             # reach our Monte Carlo like condition
             # Note: i = index of the i'th stem
-            for i in range(len(self.rates)):
-                trial = kF.partialSum(self.rates[:i])
+            normalized_rates = kF.normalize(self.rates)
 
-                if trial >= r1 * self.totalFlux:
-                    nextMove = self.STableBPs[i]  # we have met the conddition so this stem will be our first move
+            for i in range(len(normalized_rates)):
+                trial = kF.partialSum(normalized_rates[:i])
+
+                if trial >= r1:
+                    nextMove = self.STableBPs[i]  # we have met the condition so this stem will be our first move
                     self.currentStructure.append(nextMove)
-
+                    del self.STableBPs[i] # remove this move from itself
                     for m in range(len(self.STableBPs)):
-                        if C[m, i]:
+                        if C[m, i] and m != i:
                             if self.STableBPs[m] not in self.possibleStems:
-                                self.possibleStems.append(self.STableBPs[m])
-                                self.possibleRates.append(self.rates[m])
-                                self.possibleBreakRates.append(self.ratesBreak[m])
+
+                                self.possibleStems.append([self.STableBPs[m], m])
+                                self.possibleRates.append(self.rates[m].append(m))
+                                self.possibleBreakRates.append(self.ratesBreak[m].append(m))
+                                # the rate arrays both have the format, where
+                                # self.possibleRates[i][0] = rate
+                                # self.possibleRates[i][1] = break or form
+                                # self.possibleRates[i][2] = stem that this rate corresponds too
+
+
                     # we now need to append the possibility of breaking the stem, we just created so
-                    self.possibleRates.append(self.ratesBreak[i])
+                    self.possibleRates.insert(0, self.ratesBreak[i])
+                    #self.possibleRates.append(self.ratesBreak[i])
+                    self.possibleRates = kF.normalize(self.possibleRates) # renormalize these rates appropraitely
                     self.MemoryOfPossibleStems = self.possibleStems
-                    # Question here!!!!
-                    self.totalFlux = r1*self.totalFlux - kF.partialSum(self.possibleRates[:i]) # recalculate the partial sum
+                    # at this point we need to renormalize the rates
                     print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), str(self.currentStructure)))
                     break
 
@@ -113,54 +125,54 @@ class Gillespie:
             for i in range(len(self.possibleRates)):
 
                 trial = kF.partialSum(self.possibleRates[:i])
-
-                if trial >= r1*self.totalFlux:
-
-                    if i >= len(self.possibleStems):
-                        break
+                if trial >= r1:
 
                     if self.possibleRates[i][1]:
                     # This means that we have chosen a rate that corresponds to forming this stem
-                        nextMove = self.possibleStems[i]
+                        index = self.possibleRates[i][2]
+                        nextMove = self.possibleStems[index]
                         if kF.canAdd(self.currentStructure, nextMove):
                             self.currentStructure.append(nextMove)
-                            self.possibleRates.append(self.possibleBreakRates[i]) # now append the possiblity of breaking this stem
-
+                            self.possibleRates.insert(0, self.possibleRates[i])
+                            #self.possibleRates.append(self.possibleBreakRates[i]) # now append the possiblity of breaking this stem
+                            self.possibleStems.insert(0, 0) # make sure that the lengths of the possibleRates and possible stems match
                             del self.possibleRates[i] # remove this rate from happening
                             del self.possibleStems[i] # remove this stem because now it has been chosen
 
-                            self.totalFlux = r1*self.totalFlux - kF.partialSum(self.possibleRates[:i])
+                            self.possibleRates = kF.normalize(self.possibleRates)
                             print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), str(self.currentStructure)))
+
                             break
 
                     else:
                     # We have chosen to break the stem so we will remove it from the current structure
                     # self.possibleRates[i][0] will match one of the rates in self.possibleRatesBreak
 
-                        for j in range(len(self.possibleRatesBreak)):
-                            if self.possibleRates[j][0] == self.possibleRatesBreak:
+                        for j in range(len(self.possibleBreakRates)):
+                            if self.possibleRates[j][0] == self.possibleBreakRates[j][0]:
                             # found the rate that corresponds with this stem
-                                breakThisStem = self.MemoryOfPossibleStems[i]
-                                for k in range(len(self.currentStructure)):
-                                    if self.currentStructure[k] == breakThisStem:
-                                        del self.currentStructure[k]
-                                    else:
-                                        print('Error: Move chosen to break stem %s, but can not find this stem in the current structure' %(str(breakThisStem)))
-                        del self.possibleRates[i]
-                        print('Time: %0.2fs | Broke Stem: %s | Current Structure: %s' %(self.time, str(breakThisStem), str(self.currentStructure)))
-                        self.totalFlux = r1*self.totalFlux - kF.partialSum(self.possibleRates[:i])
-                        break
+                                breakStem = self.MemoryOfPossibleStems[j]
+                                self.currentStructure = kF.findWhereAndBreak(self.currentStructure, breakStem)
+                                del self.possibleRates[i]
+                                print('Time: %0.2fs | Broke Stem: %s | Current Structure: %s' %(self.time, str(breakStem), str(self.currentStructure)))
+                                self.possibleRates = kF.normalize(self.possibleRates)
 
         return(self)
+
+
+    def convert2dot(self, structure):
+        # conver to dot bracket notation including pseudoknots
+        dotbracket  = []
+        return dotbracket
+
 
     def runGillespie(self):
         while self.time < self.cutoff:
             self.MonteCarloStep()
         return(self.currentStructure)
 
-    # TO-DO
-    # 1. Write structure to dot bracket function
 
+#'AGGCCAUGGUGCAGCCAAGGAUGACUUGCCGAUCGAUCGAUCUAUCUAUGAAGCUAAGCUAGCUGGCCAUGGAUCCAUCCAUCAAUUGGCAAGUUGUUCUUGGCUACAUCUUGGCCCCU'
 
-G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], 1000)
-structure = G.runGillespie()
+G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], 100)
+G.runGillespie()
