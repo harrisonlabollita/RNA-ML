@@ -4,7 +4,7 @@ import kineticFunctions as kF
 ###################### Gillespie Algorithm at the Stem level ###################
 # Author: Harrison LaBollita
 # Version: 2.0.0
-# Date: November 10, 2019
+# Date: November 11, 2019
 ################################################################################
 
 
@@ -70,12 +70,18 @@ class Gillespie:
         if len(self.currentStructure) == 0:
 
             C = self.compatibilityMatrix
+            #for i in range(len(C)):
+            #    for j in range(len(C[i])):
+            #        if i == 3:
+            #            print('%s at %d, %d' %(C[i,j], i, j))
+
             r1 = np.random.random()
             r2 = np.random.random()
             self.rates = kF.calculateStemRates(self.stemEntropies, kB =  0.0019872, T = 310.15, kind = 1)
             self.ratesBreak = kF.calculateStemRates(self.stemGFEnergies, kB = 0.0019872, T = 310.15, kind = 0)
             #self.totalFlux = kF.calculateTotalFlux(self.rates) # normalize the rates
-            self.totalFlux = sum(self.rates[:][0])
+            self.totalFlux = kF.calculateTotalFlux(self.rates)
+
             self.time = abs(np.log(r2)/self.totalFlux)
 
             # Made sure that the rates in fact sum to 1!
@@ -84,30 +90,36 @@ class Gillespie:
             # Note: i = index of the i'th stem
             normalized_rates = kF.normalize(self.rates)
 
+
             for i in range(len(normalized_rates)):
                 trial = kF.partialSum(normalized_rates[:i])
 
                 if trial >= r1:
-                    nextMove = self.STableBPs[i]  # we have met the condition so this stem will be our first move
+                    nextMove = self.STableBPs[i] # we have met the condition so this stem will be our first move
                     self.currentStructure.append(nextMove)
-                    del self.STableBPs[i] # remove this move from itself
+                    # remove this move from itself
                     for m in range(len(self.STableBPs)):
-                        if C[m, i] and m != i:
-                            if self.STableBPs[m] not in self.possibleStems:
-
-                                self.possibleStems.append([self.STableBPs[m], m])
-                                self.possibleRates.append(self.rates[m].append(m))
-                                self.possibleBreakRates.append(self.ratesBreak[m].append(m))
-                                # the rate arrays both have the format, where
+                        if C[i, m] and m != i :
+                            self.possibleStems.append([self.STableBPs[m], m])
+                            rate = self.rates[m]
+                            rate.append(m)
+                            self.possibleRates.append(rate)
+                            rateB = self.ratesBreak[m]
+                            rateB.append(m)
+                            self.possibleBreakRates.append(rateB)
+                            # the rate arrays both have the format, where
                                 # self.possibleRates[i][0] = rate
                                 # self.possibleRates[i][1] = break or form
                                 # self.possibleRates[i][2] = stem that this rate corresponds too
-
-
+                    if not len(self.possibleStems):
+                        print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), str(self.currentStructure)))
+                        break
                     # we now need to append the possibility of breaking the stem, we just created so
-                    self.possibleRates.insert(0, self.ratesBreak[i])
-                    #self.possibleRates.append(self.ratesBreak[i])
+                    toAdd = self.ratesBreak[i]
+                    toAdd.append(i)
+                    self.possibleRates.insert(0, toAdd)
                     self.possibleRates = kF.normalize(self.possibleRates) # renormalize these rates appropraitely
+                    #print(kF.calculateTotalFlux(self.possibleRates))
                     self.MemoryOfPossibleStems = self.possibleStems
                     # at this point we need to renormalize the rates
                     print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), str(self.currentStructure)))
@@ -130,16 +142,17 @@ class Gillespie:
                     if self.possibleRates[i][1]:
                     # This means that we have chosen a rate that corresponds to forming this stem
                         index = self.possibleRates[i][2]
-                        nextMove = self.possibleStems[index]
+                        nextMove = kF.findStem(index, self.possibleStems)
                         if kF.canAdd(self.currentStructure, nextMove):
                             self.currentStructure.append(nextMove)
-                            self.possibleRates.insert(0, self.possibleRates[i])
+                            del self.possibleRates[i]
+                             # remove this rate from happening
+                             # remove this stem because now it has been chosen
+                            self.possibleRates.insert(0, self.possibleBreakRates[i])
                             #self.possibleRates.append(self.possibleBreakRates[i]) # now append the possiblity of breaking this stem
-                            self.possibleStems.insert(0, 0) # make sure that the lengths of the possibleRates and possible stems match
-                            del self.possibleRates[i] # remove this rate from happening
-                            del self.possibleStems[i] # remove this stem because now it has been chosen
 
                             self.possibleRates = kF.normalize(self.possibleRates)
+                            #print(kF.calculateTotalFlux(self.possibleRates))
                             print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), str(self.currentStructure)))
 
                             break
@@ -172,7 +185,9 @@ class Gillespie:
         return(self.currentStructure)
 
 
+
 #'AGGCCAUGGUGCAGCCAAGGAUGACUUGCCGAUCGAUCGAUCUAUCUAUGAAGCUAAGCUAGCUGGCCAUGGAUCCAUCCAUCAAUUGGCAAGUUGUUCUUGGCUACAUCUUGGCCCCU'
 
-G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], 100)
-G.runGillespie()
+G = Gillespie('AGGCCAUGGUGCAGCCAAGGAUGACUUGCCGAUCGAUCGAUCUAUCUAUGAAGCUAAGCUAGCUGGCCAUGGAUCCAUCCAUCAAUUGGCAAGUUGUUCUUGGCUACAUCUUGGCCCCU', [], 10)
+
+structure = G.runGillespie()

@@ -1,0 +1,65 @@
+Title: Exploratory Computational Methods for RNA Secondary Structure Prediction
+
+Author: Harrison LaBollita 
+PI: Petr Sulc 
+
+Areas of Work: Machine learning and kinetic folding
+
+
+1 Introduction 
+
+- Motivation for understanding RNA secondary structure, (fundamental to all of lie) specifically, structures with pseudo knots in them. Main approach is dynamic programming, however, with the rise of machine learning methods it is worth exploring the viability of machine learning methods. 
+ 
+- Define pseudoknots. (Nice image here) 
+
+- Briefly touch on how current methods ignore pseudoknots but it most RNA structures contain pseudoknots, therefore it is necessary for algorithms to not exclude this possibility
+
+- Explain how there may not be a one size fits all tool for RNA secondary structure prediction, therefore, researcher should focus on building different computational tools for different regimes of RNA secondary structure prediction
+
+- In this work, we present both machine learning exploration, specifically, the implementation of a convolutional neural network as a means for RNA secondary prediction. Furthermore, we have implemented a stem level Gillespie algorithm designed for predicting the secondary structure of longer RNA sequences, i.e, > 1000 nucleotides (ntds).
+
+2 Convolutional Neural Network to Predict RNA Secondary Structures 
+  2.1 intro to CNNs 
+	- image recognition
+  2.2 Data and Methods
+	- nupack and seed structure (data mined)
+	- convert rna sequences to matrices to use as input for CNN (figure here)
+	- explain how this is done
+  2.3 CNN Model
+	- the model's components layers and such 
+	- hyperparameter search, configuration space
+  2.4 Results 
+	- results from CNN model 
+	- compare to Vienna RNA
+  2.5 Limitations 
+	- our model could output non-physical structure so need to add a layer that 
+	  verifies whether the output is physical or not. This could be done with a 
+	  Nussinov type layer or potentially use another machine learning program to 
+	  learn physical outputs from non-physical outputs 
+	- There are other types of machine learning implementations that use LTSM
+	  and Recurrent layers for other models. These have been shown to be successful
+	  and consider the sequence as a sentence that can be translated. 
+3 A Stem Level Gillespie Algorithm for RNA Secondary Structures
+  3.1 Introduction to Gillespie Algorithm
+        - Leading dynamic program algorithm for chemical reactions 
+	- Brief bit of theory 
+  3.2 Stem Level Algorithm  
+	- Why we want to implement a stem level algorithm? Because we want to work in the 
+	  regime of longer sequences therefore for computational efficiency we must work
+	  stem level. 
+	- Explain our procedure and algorithm
+  3.3 Results 
+	- results and kind of output from the algorithm 
+	- compare to Vienna RNA 
+  3.4 Outlook
+	- a modular piece in a bigger algorithm 
+4 Conclusion and Outlook 
+	- As long as RNA secondary structures are not understand, researchers need to 
+	  continuously explore and implement various computational tools to predict the 
+	  secondary structures 
+	- Once an understanding of RNA secondary structures, unlock a key to 
+	  understanding a fundamental component of all of life 
+	- Advocate again for regime specific computational tools
+ 
+
+

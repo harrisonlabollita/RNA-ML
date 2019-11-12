@@ -741,8 +741,8 @@ def calculateStemRates(values, kB, T, kind):
     return transitionRates
 
 def normalize(rates):
-    #normalization = calculateTotalFlux(rates)
-    normalization = sum(rates[:][0])
+    normalization = calculateTotalFlux(rates)
+    #normalization = sum(rates[:][0])
     for i in range(len(rates)):
         rates[i][0] /= normalization
     return rates
@@ -797,3 +797,9 @@ def findWhereAndBreak(currentStructure, stemToBreak):
             index = i # found the stem that we need to break
     del currentStructure[index]
     return currentStructure
+
+def findStem(index, possibleStems):
+    for i in range(len(possibleStems)):
+        if index == possibleStems[i][1]:
+            return possibleStems[i][0]
+    return('Error: Could not find this stem!')
