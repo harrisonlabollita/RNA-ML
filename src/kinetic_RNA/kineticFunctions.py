@@ -617,10 +617,10 @@ def createSTable(sequence):
 
     return(seqInNum, numStems, STableStructure, STableBPs)
 
-def makeCompatibilityMatrix(numStems, numSequences, STableStructure, STableBPs):
+def makeCompatibilityMatrix(numStems, numSequences, STableStructure, STableBPs, frozenStems):
 
     minNtsInHairpin = 3
-    frozenStems = []
+    frozenStems = frozenStems
     allowPseudoknots = True
 
     C = np.zeros((numStems,numStems), dtype = bool)
@@ -728,15 +728,15 @@ def calculateStemRates(values, kB, T, kind):
     transitionRates = []
     if kind:
         # we are calculating the rates of forming stems, i.e.,
-        # exp(-delta S/kB T)
+        # exp(-dS/kB T)
         for i in range(len(values)):
             rate = [k_0 * np.exp((-1)*abs(values[i])/ (kB* T)), 1]
             transitionRates.append(rate)
     else:
         # we are calculating the rate of breaking a stem
-        # exp(- delta G/ kB T)
+        # exp(- dG/ kB T)
         for i in range(len(values)):
-            rate = [k_0*np.exp((-1)*abs(values[i])/(kB*T)), 0]
+            rate = [k_0*np.exp((-1)*abs(values[i])/(kB*T)), 0, i]
             transitionRates.append(rate)
     return transitionRates
 
@@ -753,33 +753,10 @@ def partialSum(rates):
         partial += rates[i][0]
     return partial
 
-def flattenCurrentStructure(x):
-    out = []
-    for i in range(len(x)):
-        for j in range(len(x[i])):
-            out.append(x[i][j][0])
-            out.append(x[i][j][0])
-    return out
-
-def flattenStem(x):
-    out = []
-    for i in range(len(x)):
-        out.append(x[i][0])
-        out.append(x[i][1])
-    return out
-
-def canAdd(currentStructure, new_stem):
-    s = flattenCurrentStructure(currentStructure)
-    n = flattenStem(new_stem)
-    for i in s:
-        if i in n:
-            return False
-    return True
 
 def LegendreTransform(enthalpies, entropies, T):
-
     # Need to legendre transform the enthalpy to the gibbs free energy
-    # G = H - TS
+    # dG = dH - TdS
     gibbsFreeEnergies = []
 
     for i in range(len(enthalpies)):
@@ -789,17 +766,40 @@ def LegendreTransform(enthalpies, entropies, T):
     return gibbsFreeEnergies
 
 
-def findWhereAndBreak(currentStructure, stemToBreak):
-    #stemToBreak is a
-    index = 0
-    for i in range(len(currentStructure)):
-        if  currentStructure[i] == stemToBreak:
-            index = i # found the stem that we need to break
-    del currentStructure[index]
-    return currentStructure
-
 def findStem(index, possibleStems):
     for i in range(len(possibleStems)):
         if index == possibleStems[i][1]:
-            return possibleStems[i][0]
+            return possibleStems[i]
     return('Error: Could not find this stem!')
+
+def updateReactionRates(possibleStems):
+    # this needs to be changed to actually calculate the transition rates to the next state
+    rates = []
+    for i in range(len(possibleStems)):
+        index = possibleStems[i][1]
+        rate = [1/len(possibleStems), 1, index]
+        rates.append(rate)
+    return rates
+
+def findNewStems(stemsInCurrentStructure, allPossibleStems, C, stemIndex):
+
+    # currentStructure: list of stems in the the current structure
+    # allPossibleStems: list of al possible stems for this sequence
+    # C: matrix containing the compatibility of two stems
+    # stemIndex: the index of the stem we are trying to add
+    nextPossibleStems = []
+    if stemIndex == -1:
+        for i in range(len(allPossibleStems)):
+            for j in range(stemsInCurrentStructure):
+                if i not in stemsInCurrentStructure:
+                    if C[i, j] and i != j:
+                        nextPossibleStems.append(allPossibleStems[i])
+    else:
+        for i in range(len(allPossibleStems)):
+            if C[stemIndex, i] and stemIndex != i:
+            # then this stem is compatible
+                if stemIndex not in stemsInCurrentStructure:
+                    for j in range(len(stemsInCurrentStructure)):
+                        if C[i, j] and i != j:
+                            nextPossibleStems.append(allPossibleStems[i])
+    return(nextPossibleStems)

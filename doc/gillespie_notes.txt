@@ -1,25 +1,15 @@
-################# GILLESPIE algorithm ITHMN NOTES ##################################
-1. Setup
-   - store initial populations and rate constants
+#################### GILLESPIE NOTES ##########################################
 
-2. Calculate reaction propensities
-3. Generate two uniform random numbers
-4. calculate reaction time using random 1
-5. Determine the next reaction using r2
-5. add t reaction to total time
-6. Update the populations based on reaction chosen
-7. go to step until stopping condition is reached.
+initialize
+allPossibleStems = [ stem_A, stem_B, ..., stem_Z]
+rates = [rate_A, rate_B, ... rate_Z]      rate_I = exp( - dG / T) or rate_I = exp( - delta S /T)  for forming?
+currentStructure = []                     break_I = exp( - dG/ T)
+                                          where dG = dH - T dS
+step
+time ++
+pick stem_I (based on random number condition)
+currentStructure = [stem_I]
+allPossibleStems = [stem_A, stem_B, stem_Z] recalculate or re-use?
+rates = [break_I, rate_A, rate_B, rate_Z]
 
-The partial sum table is partitioned according to the size of the reaction/totalFlux.
-This is where the inequality comes into play, i.e, partialSum >= r2*totalFlux
-
-
-QUESTIONS:
-
-1. What is my stopping condition? When I have a structure?
-3. Sampling probability distribution or is this the partial sum table?
-4. What are the ideal backbone functions that need to be in place?
-
-
-PROBLEM:
-1. My structures do not make sense.
+repeat

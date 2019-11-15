@@ -7,7 +7,7 @@ import kineticFunctions as kF
 # Date: November 11, 2019
 ################################################################################
 
-
+# THIS DOES NOT WORK ANYMORE
 class Gillespie:
     # initialize
     # sequence: the rna sequence we would like to find the secondary structure off
@@ -43,11 +43,15 @@ class Gillespie:
         # enumerate the possible stems for a given sequence and the compatibiliy
         # matrix, which containes the information on whether stem i is compatible
         # with stem j. For more information see Kimich et. al (https://www.biorxiv.org/content/10.1101/338921v1)
-
+        frozenStems = []
         sequenceInNumbers, numStems, STableStructure, STableBPs, = kF.createSTable(sequence)
-        compatibilityMatrix = kF.makeCompatibilityMatrix(numStems, 1, STableStructure, STableBPs)
+        compatibilityMatrix = kF.makeCompatibilityMatrix(numStems, 1, STableStructure, STableBPs, frozenStems)
         stemEnergies, stemEntropies = kF.calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbers)
         return(STableBPs, compatibilityMatrix, stemEnergies, stemEntropies)
+
+
+
+
 
 
     def MonteCarloStep(self):
@@ -81,7 +85,6 @@ class Gillespie:
             self.ratesBreak = kF.calculateStemRates(self.stemGFEnergies, kB = 0.0019872, T = 310.15, kind = 0)
             #self.totalFlux = kF.calculateTotalFlux(self.rates) # normalize the rates
             self.totalFlux = kF.calculateTotalFlux(self.rates)
-
             self.time = abs(np.log(r2)/self.totalFlux)
 
             # Made sure that the rates in fact sum to 1!
@@ -89,7 +92,6 @@ class Gillespie:
             # reach our Monte Carlo like condition
             # Note: i = index of the i'th stem
             normalized_rates = kF.normalize(self.rates)
-
 
             for i in range(len(normalized_rates)):
                 trial = kF.partialSum(normalized_rates[:i])
@@ -112,17 +114,20 @@ class Gillespie:
                                 # self.possibleRates[i][1] = break or form
                                 # self.possibleRates[i][2] = stem that this rate corresponds too
                     if not len(self.possibleStems):
-                        print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), str(self.currentStructure)))
+                        print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), self.convert2dot()))
                         break
                     # we now need to append the possibility of breaking the stem, we just created so
+
                     toAdd = self.ratesBreak[i]
                     toAdd.append(i)
                     self.possibleRates.insert(0, toAdd)
+                    print(self.possibleRates)
+                    print(self.possibleStems)
                     self.possibleRates = kF.normalize(self.possibleRates) # renormalize these rates appropraitely
                     #print(kF.calculateTotalFlux(self.possibleRates))
                     self.MemoryOfPossibleStems = self.possibleStems
                     # at this point we need to renormalize the rates
-                    print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), str(self.currentStructure)))
+                    print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), self.convert2dot()))
                     break
 
         else:
@@ -130,6 +135,7 @@ class Gillespie:
 
             r1 = np.random.random()
             r2 = np.random.random()
+
             self.time += abs(np.log(r2)/self.totalFlux)
 
         # Now we will only consider the possible rates that can form with our first chosen stem
@@ -138,7 +144,6 @@ class Gillespie:
 
                 trial = kF.partialSum(self.possibleRates[:i])
                 if trial >= r1:
-
                     if self.possibleRates[i][1]:
                     # This means that we have chosen a rate that corresponds to forming this stem
                         index = self.possibleRates[i][2]
@@ -152,8 +157,8 @@ class Gillespie:
                             #self.possibleRates.append(self.possibleBreakRates[i]) # now append the possiblity of breaking this stem
 
                             self.possibleRates = kF.normalize(self.possibleRates)
-                            #print(kF.calculateTotalFlux(self.possibleRates))
-                            print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), str(self.currentStructure)))
+                            #print(kF.calculateTotalFlux(self.possible Rates))
+                            print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), self.convert2dot()))
 
                             break
 
@@ -173,10 +178,25 @@ class Gillespie:
         return(self)
 
 
-    def convert2dot(self, structure):
+    def convert2dot(self):
         # conver to dot bracket notation including pseudoknots
-        dotbracket  = []
-        return dotbracket
+        representation = ''
+        dotbracket = [0]*len(self.sequence)
+        currentStructure = self.currentStructure[0]
+        for i in range(len(currentStructure)):
+            open = currentStructure[i][0]
+            close = currentStructure[i][1]
+            dotbracket[open] = 1
+            dotbracket[close] = 2
+        for element in dotbracket:
+            if element == 0:
+                representation += '.'
+            elif element == 1:
+                representation += '('
+            else:
+                representation += ')'
+
+        return(representation)
 
 
     def runGillespie(self):
@@ -187,7 +207,7 @@ class Gillespie:
 
 
 #'AGGCCAUGGUGCAGCCAAGGAUGACUUGCCGAUCGAUCGAUCUAUCUAUGAAGCUAAGCUAGCUGGCCAUGGAUCCAUCCAUCAAUUGGCAAGUUGUUCUUGGCUACAUCUUGGCCCCU'
-
-G = Gillespie('AGGCCAUGGUGCAGCCAAGGAUGACUUGCCGAUCGAUCGAUCUAUCUAUGAAGCUAAGCUAGCUGGCCAUGGAUCCAUCCAUCAAUUGGCAAGUUGUUCUUGGCUACAUCUUGGCCCCU', [], 10)
+#'CGGUCGGAACUCGAUCGGUUGAACUCUAUC'
+G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], 10)
 
 structure = G.runGillespie()
