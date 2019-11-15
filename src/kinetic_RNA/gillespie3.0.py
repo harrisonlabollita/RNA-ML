@@ -38,6 +38,14 @@ class Gillespie:
         self.nextPossibleStems = []
         self.nextPossibleRates = []
 
+        self.writeToFile = True
+
+        if self.writeToFile:
+            self.f = open('%s.txt' %(self.sequence), 'w+')
+            self.f.write('Sequence: %s\n' %(self.sequence))
+
+
+
     def initialize(self, sequence):
         # We call functions from kineticFunctions, which were taken from
         # Kimichi et. al to produce the stem energies and entropies, as well as,
@@ -102,7 +110,11 @@ class Gillespie:
                         self.nextPossibleRates = kF.updateReactionRates(self.nextPossibleStems)
                         self.nextPossibleRates.insert(0, self.ratesBreak[i])
                         self.nextPossibleRates = kF.normalize(self.nextPossibleRates)
-                    print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), self.convert2dot(self.currentStructure)))
+
+                    if self.writeToFile:
+                        self.f.write('Time: %0.2fs | Added Stem: %s | Current Structure: %s\n' %(self.time, str(nextMove), self.convert2dot(self.currentStructure)))
+                    else:
+                        print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), self.convert2dot(self.currentStructure)))
                     break
 
         else:
@@ -130,11 +142,15 @@ class Gillespie:
                         # calculate the new rates for the next state
                         self.nextPossibleRates = kF.normalize(kF.updateReactionRates(self.nextPossibleStems))
                         #print(kF.calculateTotalFlux(self.possible Rates))
-                        print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove[0]), self.convert2dot(self.currentStructure)))
+                        if self.writeToFile:
+                            self.f.write('Time: %0.2fs | Added Stem: %s | Current Structure: %s\n' %(self.time, str(nextMove), self.convert2dot(self.currentStructure)))
+                        else:
+                            print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), self.convert2dot(self.currentStructure)))
+                        break
 
                     else:
         # We have chosen to break the stem so we will remove it from the current structure
-        # self.possibleRates[i][0] will match one of the rates in self.possibleRatesBreak
+        # Then we will find the nextPossibleStems and nextPossibleRates and update the currentStructure
                         stemIndexToRemove = self.nextPossibleRates[i][2]
                         StemToBreak = kF.findStem(stemIndexToRemove, self.allPossibleStems)
                         for k in range(len(stemsInCurrentStructure)):
@@ -143,15 +159,18 @@ class Gillespie:
                                 del self.currentStructure[i]
                                 self.nextPossibleStems = kF.findNewStems(self.stemsInCurrentStructure, self.allPossibleStems, self.compatibilityMatrix, -1)
                                 self.nextPossibleRates = kF.normalize(kF.updateReactionRates(self.nextPossibleStems))
-                                print('Time: %0.2fs | Broke Stem: %s | Current Structure: %s' %(self.time, str(stemToBreak), self.convert2dot(self.currentStructure)))
+                                if self.writeToFile:
+
+                                    self.f.write('Time: %0.2fs | Broke Stem: %s | Current Structure: %s\n' %(self.time, str(stemToBreak), self.convert2dot(self.currentStructure)))
+                                else:
+                                    print('Time: %0.2fs | Broke Stem: %s | Current Structure: %s' %(self.time, str(stemToBreak), self.convert2dot(self.currentStructure)))
+                                break
         return(self)
 
     def convert2dot(self, currentStructure):
         # convert to dot bracket notation including pseudoknots
         representation = ''
         dotbracket = [0]*len(self.sequence)
-
-
         for i in range(len(currentStructure)):
             for j in range(len(currentStructure[i])):
                 open = currentStructure[i][j][0]
@@ -172,6 +191,7 @@ class Gillespie:
         while self.time < self.maxTime:
             self.MonteCarloStep()
         return(self.currentStructure)
-
-G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], 10)
+#'AGGCCAUGGUGCAGCCAAGGAUGACUUGCCGAUCGAUCGAUCUAUCUAUGAAGCUAAGCUAGCUGGCCAUGGAUCCAUCCAUCAAUUGGCAAGUUGUUCUUGGCUACAUCUUGGCCCCU'
+#'CGGUCGGAACUCGAUCGGUUGAACUCUAUC'
+G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], 3)
 structure = G.runGillespie()
