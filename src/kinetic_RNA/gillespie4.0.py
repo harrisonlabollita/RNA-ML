@@ -244,5 +244,5 @@ class Gillespie:
 
 #'CGGUCGGAACUCGAUCGGUUGAACUCUAUC'
 
-G = Gillespie('AAAAAAAAAGGGGGGGGGUUUUUUUU', [], maxTime = 3, writeToFile = False)
+G = Gillespie('AAAACCCUUUU', [], maxTime = 3, writeToFile = False)
 structure = G.runGillespie()
