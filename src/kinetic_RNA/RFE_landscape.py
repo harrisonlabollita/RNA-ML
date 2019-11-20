@@ -34,7 +34,7 @@ class RNALandscape:
 
     def __init__(self, sequences, DNA = [False,False], sequenceFrequencies = [1,1], b = 0.8/0.33, T = 310.15,
                   vs=0.02, duplexEntropyPenaltyInKB = 0, minBPInStem = 2, numParForLoops = 1,
-                  storeGraphs = False, makeFigures = False, printProgressUpdate = True,
+                  storeGraphs = False, makeFigures = False, printProgressUpdate = False,
                   allowPseudoknots = True, minNumStemsInStructure = 0, substems = 'all', frozenBPs = [],
                   toSave = False, tryToLoadVariables = False, maxSizeSTable = 10**4,
                   onlyAllowSubsetsOfLongestStems = False, onlyConsiderSubstemsFromEdges = False,
@@ -975,7 +975,6 @@ class RNALandscape:
                     bondFECounts[3][0,1] += 1 #terminal AT was found
 
 
-
         for stem in structure: #two potential terminal mismatches for each stem
             numBonds = int(len(stem)/2)
 
@@ -1070,7 +1069,7 @@ class RNALandscape:
         return(bondFECounts,dangling5Count,dangling3Count,specialLoopEnergies,specialLoopEntropies,
                unboundButCouldBindCounts)
 
-    def calculateLoopEntropy(self,structure):
+    def calculateLoopEntropy(self, structure):
         G, numVs, bridgeList = createGraphFromStructure(structure, self.numNt, self.linkerPos)
         componentGraphs = calculateEntropyFromGraph(G, self.refNets, bridgeList)
 

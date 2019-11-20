@@ -1,5 +1,6 @@
 import numpy as np
 import kineticFunctions as kF
+import RFE_landscape as RFE
 
 ###################### Gillespie Algorithm at the Stem level ###################
 # Author: Harrison LaBollita
@@ -15,16 +16,17 @@ class Gillespie:
     # frozenBPs: stems that must be included in the final result
     # cutoff: arbitraty time to stop the gillespie algorithm
 
-    def __init__(self, sequence, frozen, maxTime):
+    def __init__(self, sequence, frozen, maxTime, writeToFile):
 
         # initialize sequence to create energies, entropies and stem possiblities from
         # kineticFunctions library
 
         self.sequence = sequence
         self.frozen = frozen
-        self.allPossibleStems, self.compatibilityMatrix, self.stemEnergies, self.stemEntropies = self.initialize(sequence)
-        # need to convert the enthalpy to the gibbs free energy
+       # STableBPs,             STableStructure,     compatibilityMatrix,       allStructures,     stemEnergies,      stemEntropies,      totalEntropies
+        self.allPossibleStems, self.STableStructure, self.compatibilityMatrix, self.allStructures, self.stemEnergies, self.stemEntropies, self.totalEntropies = self.initialize(sequence)
 
+        # need to convert the enthalpy to the gibbs free energy
         self.stemGFEnergies = kF.LegendreTransform(self.stemEnergies, self.stemEntropies, 310.15)
         # intialize the current structure arrays
         self.currentStructure = []
@@ -35,15 +37,14 @@ class Gillespie:
         self.maxTime = maxTime
         self.time = 0
 
-        self.nextPossibleStems = []
-        self.nextPossibleRates = []
+        self.nextPossibleStems = [] #initialize
+        self.nextPossibleRates = [] #initialize
 
-        self.writeToFile = True
+        self.writeToFile = writeToFile
 
         if self.writeToFile:
             self.f = open('%s.txt' %(self.sequence), 'w+')
             self.f.write('Sequence: %s\n' %(self.sequence))
-
 
 
     def initialize(self, sequence):
@@ -52,11 +53,48 @@ class Gillespie:
         # enumerate the possible stems for a given sequence and the compatibiliy
         # matrix, which containes the information on whether stem i is compatible
         # with stem j. For more information see Kimich et. al (https://www.biorxiv.org/content/10.1101/338921v1)
+
+        q = RFE.RNALandscape([sequence])
+        q.calculateFELandscape()
         frozenStems = []
-        sequenceInNumbers, numStems, STableStructure, STableBPs, = kF.createSTable(sequence)
-        compatibilityMatrix = kF.makeCompatibilityMatrix(numStems, 1, STableStructure, STableBPs, frozenStems)
+        sequenceInNumbers = q.sequenceInNumbers
+        numStems = q.numStems
+        STableStructure = q.STableStructure
+        STableBPs = q.STableBPs
+        compatibilityMatrix = q.C
         stemEnergies, stemEntropies = kF.calculateStemFreeEnergiesPairwise(numStems, STableStructure, sequenceInNumbers)
-        return(STableBPs, compatibilityMatrix, stemEnergies, stemEntropies)
+        allLoopEntropies = q.allLoopEntropies
+        allBondEntropies = q.allBondEntropies
+        allDuplexEntropies = q.allDuplexEntropies
+        allStructures = kF.structure2stem(q.structures, STableBPs)
+
+        totalEntropies = kF.totalEntropyPerStructure(allLoopEntropies, allBondEntropies, allDuplexEntropies)
+
+        return(STableBPs, STableStructure, compatibilityMatrix, allStructures, stemEnergies, stemEntropies, totalEntropies)
+
+    def updateReactionRates(self, kB=0.0019872 , T=310.15):
+        # this needs to be changed to actually calculate the transition rates to the next stat
+        # self.nextPossibleStems[i] = [ stem, index]
+        # self.currentStructure = list of stems in the current structure
+        # self.
+        updateRates = [] # array of rates
+
+        for i in range(len(self.nextPossibleStems)):
+            # trial stem that we will individually test
+            trialStructure = self.currentStructure
+            trialStem = self.nextPossibleStems[i][0]   # the stem that we want to find
+            trialIndex = self.nextPossibleStems[i][1] # the index of the stem
+            trialStructure.append(trialStem)
+            rateOfTrialStructure = kF.findTrialStructureRate(trialStructure, self.allStructures, self.totalEntropies)
+            if rateOfTrialStructure == 0:
+                entropicRate = [np.exp(-abs(rateOfTrialStructure)/(kB*T)), 1, trialIndex]
+                updateRates.append(entropicRate)
+
+        # convert the rates to the format needed in the code
+        #rates = kF.calculateStemRates(rates, kB =  0.0019872, T = 310.15, kind = 1)
+        return updateRates
+
+
 
     def MonteCarloStep(self):
         # Following Dykeman 2015 (https://academic.oup.com/nar/article/43/12/5708/2902645)
@@ -79,58 +117,65 @@ class Gillespie:
 
         if len(self.currentStructure) == 0:
 
-            C = self.compatibilityMatrix
+            C = self.compatibilityMatrix #for readability we rename this
 
             # generate two random numbers
             r1 = np.random.random()
             r2 = np.random.random()
 
             # calculate the transition rates for all the states, this done using the kineticFunctions file.
-            self.rates = kF.calculateStemRates(self.stemEntropies, kB =  0.0019872, T = 310.15, kind = 1)
+            self.allRates = kF.calculateStemRates(self.stemEntropies, kB =  0.0019872, T = 310.15, kind = 1)
             self.ratesBreak = kF.calculateStemRates(self.stemGFEnergies, kB = 0.0019872, T = 310.15, kind = 0)
-            self.totalFlux = kF.calculateTotalFlux(self.rates) # the sum off all the rates
-            self.time += abs(np.log(r2)) # increment the reaction time for next state
-            normalized_rates = kF.normalize(self.rates) # normalize the rates such that the sum to one
+            self.totalFlux = kF.calculateTotalFlux(self.allRates) # the sum off all the rates
+            self.time += abs(np.log(r2))/self.totalFlux # increment the reaction time for next state
+            normalizedRates = kF.normalize(self.allRates) # normalize the rates such that they sum to one
 
-            for i in range(len(normalized_rates)):
-                trial = kF.partialSum(normalized_rates[:i])
+            for i in range(len(normalizedRates)):
+                trial = kF.partialSum(normalizedRates[:i])
                 if trial >= r1:
                     nextMove = self.allPossibleStems[i] # we have met the condition so this stem will be our first move
                     self.currentStructure.append(nextMove)
                     self.stemsInCurrentStructure.append(i)
+
                     # remove this move from itself
                     for m in range(len(self.allPossibleStems)):
+
                         if C[i, m] and m != i :
                             # at this point we find all the next possible states for our structure to be in, in other words,
                             # the list of possible stems with our current structure
+
                             self.nextPossibleStems.append([self.allPossibleStems[m], m]) # we will keep track of the stem and the label for that stem i.e.,
                                                                                          # self.nextPossibleStems[i] = [ stem_i, index] index = m
                     # at this point we would recalculate the stem rates and append the breaking rate
+
                     if len(self.nextPossibleStems):
-                        self.nextPossibleRates = kF.updateReactionRates(self.nextPossibleStems)
+
+                        self.nextPossibleRates = self.updateReactionRates(kB =  0.0019872, T = 310.15)
+
                         self.nextPossibleRates.insert(0, self.ratesBreak[i])
+                        self.totalFlux = kF.calculateTotalFlux(self.nextPossibleRates)
                         self.nextPossibleRates = kF.normalize(self.nextPossibleRates)
 
                     if self.writeToFile:
                         self.f.write('Time: %0.2fs | Added Stem: %s | Current Structure: %s\n' %(self.time, str(nextMove), self.convert2dot(self.currentStructure)))
                     else:
-                        print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), self.convert2dot(self.currentStructure)))
+                        print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), self.currentStructure))
                     break
-
         else:
         # Now we are in our 2+ move.
 
         # generate two random numbers
             r1 = np.random.random()
             r2 = np.random.random()
-        # update time
 
-            self.time += abs(np.log(r2))
+        # update time
+            self.time += abs(np.log(r2))/self.totalFlux
+
         # find the next move
             for i in range(len(self.nextPossibleRates)):
                 trial = kF.partialSum(self.nextPossibleRates[:i])
-                if trial >= r1:
 
+                if trial >= r1:
                     if self.nextPossibleRates[1]: # this will be true if we have chosen to add a stem
                         index = self.nextPossibleRates[i][2] # the index of the stem that we will add
                         nextMove = kF.findStem(index, self.nextPossibleStems)
@@ -138,45 +183,54 @@ class Gillespie:
                         self.currentStructure.append(nextMove[0])
                         self.stemsInCurrentStructure.append(stemIndex)
                         # check for new stems that could be compatible with the structure
-                        self.nextPossibleStems = kF.findNewStems(self.stemsInCurrentStructure, self.allPossibleStems, self.compatibilityMatrix, stemIndex)
+                        self.nextPossibleStems = kF.findNewStems(self.stemsInCurrentStructure, self.allPossibleStems, self.compatibilityMatrix, 0)
                         # calculate the new rates for the next state
-                        self.nextPossibleRates = kF.normalize(kF.updateReactionRates(self.nextPossibleStems))
-                        #print(kF.calculateTotalFlux(self.possible Rates))
+                        self.nextPossibleRates = self.updateReactionRates(kB =  0.0019872, T = 310.15)
+                        self.totalFlux = kF.calculateTotalFlux(self.nextPossibleRates)
+                        self.nextPossibleRates = kF.normalize(self.possibleRates)
+
                         if self.writeToFile:
                             self.f.write('Time: %0.2fs | Added Stem: %s | Current Structure: %s\n' %(self.time, str(nextMove), self.convert2dot(self.currentStructure)))
                         else:
-                            print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), self.convert2dot(self.currentStructure)))
+                            print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), self.currentStructure))
                         break
 
-                    else:
-        # We have chosen to break the stem so we will remove it from the current structure
-        # Then we will find the nextPossibleStems and nextPossibleRates and update the currentStructure
+                    else: # we have chosen to break a stem
+                    # We will now find the stem to break in our current structure, then populate a list of new
+                    # new stems to consider for the next move.
                         stemIndexToRemove = self.nextPossibleRates[i][2]
                         StemToBreak = kF.findStem(stemIndexToRemove, self.allPossibleStems)
-                        for k in range(len(stemsInCurrentStructure)):
+                        for k in range(len(stemsInCurrentStructure)): #searching for the stem to break
                             stemIndexToRemove = stemsInCurrentStructure[i]
                             if stemIndex == stemToRemove:
                                 del self.currentStructure[i]
                                 self.nextPossibleStems = kF.findNewStems(self.stemsInCurrentStructure, self.allPossibleStems, self.compatibilityMatrix, -1)
-                                self.nextPossibleRates = kF.normalize(kF.updateReactionRates(self.nextPossibleStems))
+                                self.nextPossibleRates = self.updateReactionRates(kB =  0.0019872, T = 310.15)
+                                self.totalFlux = kF.calculateTotalFlux(self.nextPossibleRates)
+                                self.nextPossibleRates = kF.normalize(self.nextPossibleRates)
                                 if self.writeToFile:
-
                                     self.f.write('Time: %0.2fs | Broke Stem: %s | Current Structure: %s\n' %(self.time, str(stemToBreak), self.convert2dot(self.currentStructure)))
                                 else:
-                                    print('Time: %0.2fs | Broke Stem: %s | Current Structure: %s' %(self.time, str(stemToBreak), self.convert2dot(self.currentStructure)))
+                                    print('Time: %0.2fs | Broke Stem: %s | Current Structure: %s' %(self.time, str(stemToBreak), self.currentStructure))
                                 break
+
         return(self)
 
     def convert2dot(self, currentStructure):
-        # convert to dot bracket notation including pseudoknots
+        # Function to convert the notation of the current structure to dot bracket notation
+        # Not written to handle pseudoknots yet
         representation = ''
         dotbracket = [0]*len(self.sequence)
+        # find the pseudoknots first and add those in the dotbracket notation
+
         for i in range(len(currentStructure)):
             for j in range(len(currentStructure[i])):
                 open = currentStructure[i][j][0]
                 close = currentStructure[i][j][1]
                 dotbracket[open] = 1
                 dotbracket[close] = 2
+        # convert 0's, 1's, and 2's into '.', '(', ')'
+
         for element in dotbracket:
             if element == 0:
                 representation += '.'
@@ -184,14 +238,16 @@ class Gillespie:
                 representation += '('
             else:
                 representation += ')'
+
         return(representation)
 
-
     def runGillespie(self):
+        # run the gillespie algorithm until we reach maxTime
         while self.time < self.maxTime:
             self.MonteCarloStep()
         return(self.currentStructure)
+
 #'AGGCCAUGGUGCAGCCAAGGAUGACUUGCCGAUCGAUCGAUCUAUCUAUGAAGCUAAGCUAGCUGGCCAUGGAUCCAUCCAUCAAUUGGCAAGUUGUUCUUGGCUACAUCUUGGCCCCU'
 #'CGGUCGGAACUCGAUCGGUUGAACUCUAUC'
-G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], 3)
+G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 3, writeToFile = False)
 structure = G.runGillespie()

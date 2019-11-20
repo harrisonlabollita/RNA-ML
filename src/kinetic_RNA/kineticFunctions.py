@@ -719,8 +719,8 @@ def makeCompatibilityMatrix(numStems, numSequences, STableStructure, STableBPs, 
 
 def calculateTotalFlux(rates):
     totalFlux = 0
-    for i in range(len(rates)):
-        totalFlux += rates[i][0]
+    for r in rates:
+        totalFlux += r[0]
     return totalFlux
 
 def calculateStemRates(values, kB, T, kind):
@@ -730,7 +730,7 @@ def calculateStemRates(values, kB, T, kind):
         # we are calculating the rates of forming stems, i.e.,
         # exp(-dS/kB T)
         for i in range(len(values)):
-            rate = [k_0 * np.exp((-1)*abs(values[i])/ (kB* T)), 1]
+            rate = [k_0 * np.exp((-1)*abs(values[i])/ (kB* T)), 1, i]
             transitionRates.append(rate)
     else:
         # we are calculating the rate of breaking a stem
@@ -741,18 +741,16 @@ def calculateStemRates(values, kB, T, kind):
     return transitionRates
 
 def normalize(rates):
-    normalization = calculateTotalFlux(rates)
-    #normalization = sum(rates[:][0])
+    normalization = sum([rates[i][0] for i in range(len(rates))])
     for i in range(len(rates)):
-        rates[i][0] /= normalization
-    return rates
+        rates[i][0] = rates[i][0]/normalization
+    return(rates)
 
 def partialSum(rates):
     partial= 0
     for i in range(len(rates)):
         partial += rates[i][0]
     return partial
-
 
 def LegendreTransform(enthalpies, entropies, T):
     # Need to legendre transform the enthalpy to the gibbs free energy
@@ -765,41 +763,117 @@ def LegendreTransform(enthalpies, entropies, T):
 
     return gibbsFreeEnergies
 
-
 def findStem(index, possibleStems):
     for i in range(len(possibleStems)):
         if index == possibleStems[i][1]:
             return possibleStems[i]
     return('Error: Could not find this stem!')
 
-def updateReactionRates(possibleStems):
-    # this needs to be changed to actually calculate the transition rates to the next state
-    rates = []
-    for i in range(len(possibleStems)):
-        index = possibleStems[i][1]
-        rate = [1/len(possibleStems), 1, index]
-        rates.append(rate)
-    return rates
 
-def findNewStems(stemsInCurrentStructure, allPossibleStems, C, stemIndex):
+def findNewStems(stemsInCurrentStructure, allPossibleStems, C, condition):
 
     # currentStructure: list of stems in the the current structure
     # allPossibleStems: list of al possible stems for this sequence
     # C: matrix containing the compatibility of two stems
     # stemIndex: the index of the stem we are trying to add
-    nextPossibleStems = []
-    if stemIndex == -1:
+    nextPossibleStems = [] # empty array
+
+    if condition:
         for i in range(len(allPossibleStems)):
-            for j in range(stemsInCurrentStructure):
+            for j in range(len(stemsInCurrentStructure)):
                 if i not in stemsInCurrentStructure:
-                    if C[i, j] and i != j:
-                        nextPossibleStems.append(allPossibleStems[i])
+                    if C[i, j] and i !=j:
+                        nextPossibleStems.append([allPossibleStems[i], i])
+
     else:
         for i in range(len(allPossibleStems)):
-            if C[stemIndex, i] and stemIndex != i:
-            # then this stem is compatible
-                if stemIndex not in stemsInCurrentStructure:
-                    for j in range(len(stemsInCurrentStructure)):
-                        if C[i, j] and i != j:
-                            nextPossibleStems.append(allPossibleStems[i])
+            # pick a stem
+            if i not in stemsInCurrentStructure:
+                # if this stem is not already in the structure, we could potentially add it
+                canAdd = 0
+                for j in range(len(stemsInCurrentStructure)):
+                    index = stemsInCurrentStructure[j]
+                    if C[i, index] and i != index:
+                        canAdd = 0
+                    else:
+                        canAdd +=1
+                if canAdd == 0:
+                    nextPossibleStems.append([allPossibleStems[i], i])
+
     return(nextPossibleStems)
+
+
+def totalEntropyPerStructure(loop, bond, duplex):
+    totalEntropy = []
+    for i in range(len(loop)):
+        val = loop[i] + bond[i] + duplex[i]
+        totalEntropy.append(val)
+    return totalEntropy
+
+def structure2stem(structures, listOfStems):
+    # converts the structure notation into stem notation that we will need:
+
+    #structure will be array of the form [1, 2, 3], where 1, 2, and 3 correspond to the
+    #indices in the array of listOfStems
+    ListOfStructures = []
+    for i in range(len(structures)):
+        structure = []
+        for j in range(len(structures[i])):
+            structure.append(listOfStems[structures[i][j]])
+        ListOfStructures.append(structure)
+    return ListOfStructures
+
+def flattenStructure(structure):
+    struct = []
+    for i in range(len(structure)):
+        for j in range(len(structure[i])):
+            struct.append(structure[i][j][0])
+            struct.append(structure[i][j][1])
+    return sorted(struct)
+
+def findTrialStructureRate(trialStructure, allStructures, totalEntropies):
+    flatTrialStruct = flattenStructure(trialStructure)
+
+    for i in range(len(allStructures)):
+
+        flatten = flattenStructure(allStructures[i])
+        check = [flatten.count(element) for element in flatten]
+        if all(x <= 1 for x in check):
+            if flatTrialStruct == flatten:
+                return totalEntropies[i]
+    return(0)
+
+def makeTrialStructures(currentStructure, possibleStems):
+    trialStructures = []
+    trialIndex = []
+
+    for i in range(len(possibleStems)):
+
+        trial = currentStructure.copy()
+        trial.append(possibleStems[i][0])
+        trialStructures.append(trial)
+        trialIndex.append(possibleStems[i][1])
+    return trialStructures, trialIndex
+
+
+def updateReactionRates(trialStructures, trialIndex, allStructures, totalEntropies, kB=0.0019872 , T=310.15):
+        # this needs to be changed to actually calculate the transition rates to the next stat
+        # self.nextPossibleStems[i] = [ stem, index]
+        # self.currentStructure = list of stems in the current structure
+        # self.
+    updateRates = [] # array of rates
+
+    for i in range(len(trialStructures)):
+        trial = trialStructures[i]
+         # the stem that we want to find# the index of the stem
+        rateOfTrialStructure = findTrialStructureRate(trial, allStructures, totalEntropies)
+        if rateOfTrialStructure != 0:
+            entropicRate = [np.exp(-abs(rateOfTrialStructure)/(kB*T)), 1, trialIndex[i]]
+            updateRates.append(entropicRate)
+
+    return updateRates
+
+def findRate(index, rates):
+    for i in range(len(rates)):
+        if rates[i][2] == index:
+            return rates[i]
