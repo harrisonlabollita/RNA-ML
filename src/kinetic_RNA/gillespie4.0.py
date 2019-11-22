@@ -128,7 +128,7 @@ class Gillespie:
                         trialStructures, trialIndices = kF.makeTrialStructures(self.currentStructure, self.nextPossibleStems)
 
 
-                        self.nextPossibleRates = kF.updateReactionRates(trialStructures, trialIndices, self.allStructures, self.totalEntropies, kB=0.0019872 , T=310.15)
+                        self.nextPossibleRates = kF.updateReactionRates(trialStructures, trialIndices, self.allStructures, self.totalEntropies, kB=0.0019872 )
                         self.nextPossibleRates.insert(0, self.ratesBreak[i])
                         self.totalFlux = kF.calculateTotalFlux(self.nextPossibleRates)
                         self.nextPossibleRates = kF.normalize(self.nextPossibleRates)
@@ -166,7 +166,7 @@ class Gillespie:
 
                         trialStructures, trialIndices = kF.makeTrialStructures(self.currentStructure, self.nextPossibleStems)
 
-                        self.nextPossibleRates = kF.updateReactionRates(trialStructures, trialIndices, self.allStructures, self.totalEntropies, kB=0.0019872 , T=310.15)
+                        self.nextPossibleRates = kF.updateReactionRates(trialStructures, trialIndices, self.allStructures, self.totalEntropies, kB=0.0019872)
 
                         self.nextPossibleRates.insert(0, kF.findRate(stemIndex, self.ratesBreak))
 
@@ -195,7 +195,7 @@ class Gillespie:
                                 self.nextPossibleStems = kF.findNewStems(self.stemsInCurrentStructure, self.allPossibleStems, self.compatibilityMatrix, 0)
                                 trialStructures, trialIndices = kF.makeTrialStructures(self.currentStructure, self.nextPossibleStems)
 
-                                self.nextPossibleRates = kF.updateReactionRates(trialStructures, trialIndices, self.allStructures, self.totalEntropies, kB=0.0019872 , T=310.15)
+                                self.nextPossibleRates = kF.updateReactionRates(trialStructures, trialIndices, self.allStructures, self.totalEntropies, kB=0.0019872)
 
                                 self.totalFlux = kF.calculateTotalFlux(self.nextPossibleRates)
                                 self.nextPossibleRates = kF.normalize(self.nextPossibleRates)
@@ -207,7 +207,6 @@ class Gillespie:
                                 break
 
         return(self)
-
 
 
     def convert2dot(self, currentStructure):
@@ -237,12 +236,13 @@ class Gillespie:
 
     def runGillespie(self):
         # run the gillespie algorithm until we reach maxTime
-        while self.time < self.maxTime:
+        while self.time <= self.maxTime:
+            print(self.time)
             self.MonteCarloStep()
         return(self.currentStructure)
 
 
 #'CGGUCGGAACUCGAUCGGUUGAACUCUAUC'
 
-G = Gillespie('AAAACCCUUUU', [], maxTime = 3, writeToFile = False)
+G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 3, writeToFile = False)
 structure = G.runGillespie()

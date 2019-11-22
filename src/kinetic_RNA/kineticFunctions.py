@@ -856,7 +856,7 @@ def makeTrialStructures(currentStructure, possibleStems):
     return trialStructures, trialIndex
 
 
-def updateReactionRates(trialStructures, trialIndex, allStructures, totalEntropies, kB=0.0019872 , T=310.15):
+def updateReactionRates(trialStructures, trialIndex, allStructures, totalEntropies, kB=0.0019872):
         # this needs to be changed to actually calculate the transition rates to the next stat
         # self.nextPossibleStems[i] = [ stem, index]
         # self.currentStructure = list of stems in the current structure
@@ -868,7 +868,7 @@ def updateReactionRates(trialStructures, trialIndex, allStructures, totalEntropi
          # the stem that we want to find# the index of the stem
         rateOfTrialStructure = findTrialStructureRate(trial, allStructures, totalEntropies)
         if rateOfTrialStructure != 0:
-            entropicRate = [np.exp(-abs(rateOfTrialStructure)/(kB*T)), 1, trialIndex[i]]
+            entropicRate = [np.exp(-abs(rateOfTrialStructure)/kB), 1, trialIndex[i]]
             updateRates.append(entropicRate)
 
     return updateRates

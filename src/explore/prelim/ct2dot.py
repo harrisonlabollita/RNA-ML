@@ -41,7 +41,9 @@ def readFile(file):
     dots = ''
     with open(file, "r") as f:
         for line in f.readlines()[1:]:
-            l = [x for x in line.split(' ') if x != '']
+            print(line)
+            l = [x for x in line.split('') if x != '']
+            print(l[0])
             n = int(l[0])
             base = l[1]
             partner = int(l[4])
