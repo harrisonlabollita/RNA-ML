@@ -730,7 +730,7 @@ def calculateStemRates(values, kB, T, kind):
         # we are calculating the rates of forming stems, i.e.,
         # exp(-dS/kB T)
         for i in range(len(values)):
-            rate = [k_0 * np.exp((-1)*abs(values[i])/ (kB* T)), 1, i]
+            rate = [k_0 * np.exp((-1)*abs(values[i])/ kB), 1, i]
             transitionRates.append(rate)
     else:
         # we are calculating the rate of breaking a stem
@@ -833,15 +833,13 @@ def flattenStructure(structure):
 
 def findTrialStructureRate(trialStructure, allStructures, totalEntropies):
     flatTrialStruct = flattenStructure(trialStructure)
-
     for i in range(len(allStructures)):
-
         flatten = flattenStructure(allStructures[i])
-        check = [flatten.count(element) for element in flatten]
-        if all(x <= 1 for x in check):
-            if flatTrialStruct == flatten:
-                return totalEntropies[i]
-    return(0)
+        #check = [flatten.count(element) for element in flatten]
+        #if all(x <= 1 for x in check):
+        if flatTrialStruct == flatten:
+            return totalEntropies[i]
+    return('Error')
 
 def makeTrialStructures(currentStructure, possibleStems):
     trialStructures = []
@@ -867,8 +865,10 @@ def updateReactionRates(trialStructures, trialIndex, allStructures, totalEntropi
         trial = trialStructures[i]
          # the stem that we want to find# the index of the stem
         rateOfTrialStructure = findTrialStructureRate(trial, allStructures, totalEntropies)
-        if rateOfTrialStructure != 0:
-            entropicRate = [np.exp(-abs(rateOfTrialStructure)/kB), 1, trialIndex[i]]
+        if rateOfTrialStructure == 'Error':
+            print('Error! Could not find the entropy of the trial structure')
+        else:
+            entropicRate = [np.exp((-1)*abs(rateOfTrialStructure)/kB), 1, trialIndex[i]]
             updateRates.append(entropicRate)
 
     return updateRates

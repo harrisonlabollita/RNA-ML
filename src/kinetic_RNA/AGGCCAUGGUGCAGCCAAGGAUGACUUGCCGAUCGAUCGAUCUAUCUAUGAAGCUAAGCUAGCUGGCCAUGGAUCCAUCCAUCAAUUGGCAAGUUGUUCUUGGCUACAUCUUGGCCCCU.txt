@@ -1,6 +1,0 @@
-Sequence: AGGCCAUGGUGCAGCCAAGGAUGACUUGCCGAUCGAUCGAUCUAUCUAUGAAGCUAAGCUAGCUGGCCAUGGAUCCAUCCAUCAAUUGGCAAGUUGUUCUUGGCUACAUCUUGGCCCCU
-Time: 0.71s | Added Stem: [[23, 93], [24, 92], [25, 91], [26, 90], [27, 89], [28, 88], [29, 87], [30, 86], [31, 85], [32, 84]] | Current Structure: ......................((((((((((...................................................)))))))))).........................
-
-
-
-Time: 1.52s | Added Stem: [[[12, 104], [13, 103]], 37] | Current Structure: ............((.........((((((((((...................................................)))))))))).........))..............
