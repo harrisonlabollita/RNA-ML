@@ -4,6 +4,7 @@
 \usepackage{lipsum}
 \usepackage{multicol}
 \usepackage{graphicx}
+\usepackage{subcaption}
 \usepackage{float}
 \usepackage[hidelinks]{hyperref}
 \usepackage{amsmath}
@@ -38,6 +39,22 @@ It is extremely advantageous to combine both the Gillespie algorithm with the wo
 \subsection{Convolutional Neural Network Model}
 \lipsum[2]
 \subsection{Results}
+\begin{figure}
+\centering
+\begin{subfigure}[b]{0.4\textwidth}
+\includegraphics[width = \textwidth]{fig/acc}
+\caption{Caption goes here}
+\label{fig:acc}
+\end{subfigure}
+\begin{subfigure}[b]{0.4\textwidth}
+\includegraphics[width = \textwidth]{fig/loss}
+\caption{Caption goes here}
+\label{fig:loss}
+\end{subfigure}
+\end{figure}
+
+
+
 \lipsum[2]
 \section{Stem Level Gillespie Algorithm}
 \subsection{Introduction to Gillespie Algorithm}

@@ -728,7 +728,7 @@ def calculateStemRates(values, kB, T, kind):
     transitionRates = []
     if kind:
         # we are calculating the rates of forming stems, i.e.,
-        # exp(-dS/kB T)
+        # exp(-dS/kB)
         for i in range(len(values)):
             rate = [k_0 * np.exp((-1)*abs(values[i])/ kB), 1, i]
             transitionRates.append(rate)
@@ -769,39 +769,64 @@ def findStem(index, possibleStems):
             return possibleStems[i]
     return('Error: Could not find this stem!')
 
+def findNewStems(stemsInCurrentStructure, allPossibleStems, allStructures):
+    nextPossibleStems = []
+    # with the stems in the current structure let's find all of the stems with the same stems in them
+    # then we will add the stems that are not in the structure yet as next possible moves
+    if len(stemsInCurrentStructure):
+        return allPossibleStems
 
-def findNewStems(stemsInCurrentStructure, allPossibleStems, C, condition):
+    for i in range(len(allStructures)):
+
+        structure = allStructures[i]
+
+        # check possible structures that contain stems that are currently in
+        # the current structure
+        if all(elem in stemsInCurrentStructure for elem in structure):
+
+            # if we found a stem that does contain all of them, we know
+            # a possible structure could have these in them
+            for j in range(len(structure)):
+
+                if structure[j] not in stemsInCurrentStructure:
+
+                    nextPossibleStems.append(allPossibleStems[structure[j]])
+    return nextPossibleStems
+
+
+
+
+#def findNewStems(stemsInCurrentStructure, allPossibleStems, C, condition):
 
     # currentStructure: list of stems in the the current structure
     # allPossibleStems: list of al possible stems for this sequence
     # C: matrix containing the compatibility of two stems
     # stemIndex: the index of the stem we are trying to add
-    nextPossibleStems = [] # empty array
-
-    if condition:
-        for i in range(len(allPossibleStems)):
-            for j in range(len(stemsInCurrentStructure)):
-                if i not in stemsInCurrentStructure:
-                    if C[i, j] and i !=j:
-                        nextPossibleStems.append([allPossibleStems[i], i])
-
-    else:
-        for i in range(len(allPossibleStems)):
-            # pick a stem
-            if i not in stemsInCurrentStructure:
-                # if this stem is not already in the structure, we could potentially add it
-                canAdd = 0
-                for j in range(len(stemsInCurrentStructure)):
-                    index = stemsInCurrentStructure[j]
-                    if C[i, index] and i != index:
-                        canAdd = 0
-                    else:
-                        canAdd +=1
-                if canAdd == 0:
-                    nextPossibleStems.append([allPossibleStems[i], i])
-
-    return(nextPossibleStems)
-
+#    nextPossibleStems = [] # empty array
+#
+#    if condition:
+#        for i in range(len(allPossibleStems)):
+#            for j in range(len(stemsInCurrentStructure)):
+#                if i not in stemsInCurrentStructure:
+#                    if C[i, j] and i !=j:
+#                        nextPossibleStems.append([allPossibleStems[i], i])
+#
+#    else:
+#        for i in range(len(allPossibleStems)):
+#            # pick a stem
+#            if i not in stemsInCurrentStructure:
+#                # if this stem is not already in the structure, we could potentially add it
+#                canAdd = 0
+#                for j in range(len(stemsInCurrentStructure)):
+#                    index = stemsInCurrentStructure[j]
+#                    if C[i, index] and i != index:
+#                        canAdd = 0
+#                    else:
+#                        canAdd +=1
+#                if canAdd == 0:
+#                    nextPossibleStems.append([allPossibleStems[i], i])
+#
+#    return(nextPossibleStems)
 
 def totalEntropyPerStructure(loop, bond, duplex):
     totalEntropy = []
@@ -823,6 +848,7 @@ def structure2stem(structures, listOfStems):
         ListOfStructures.append(structure)
     return ListOfStructures
 
+
 def flattenStructure(structure):
     struct = []
     for i in range(len(structure)):
@@ -831,17 +857,51 @@ def flattenStructure(structure):
             struct.append(structure[i][j][1])
     return sorted(struct)
 
-def findTrialStructureRate(trialStructure, allStructures, totalEntropies):
-    flatTrialStruct = flattenStructure(trialStructure)
+def convert2dot(lengthOfSequence, structure):
+        # Function to convert the notation of the current structure to dot bracket notation
+        # Not written to handle pseudoknots yet
+    representation = ''
+    dotbracket = [0]*lengthOfSequence
+        # find the pseudoknots first and add those in the dotbracket notation
+
+    for i in range(len(structure)):
+        for j in range(len(structure[i])):
+            open = structure[i][j][0]
+            close = structure[i][j][1]
+            dotbracket[open] = 1
+            dotbracket[close] = 1
+        # convert 0's, 1's, and 2's into '.', '(', ')'
+
+    for element in dotbracket:
+        if element == 1:
+            representation += '!'
+        else:
+            representation += '.'
+    return(representation)
+
+
+def findTrialStructureRate(trialStructure, allStructures, totalEntropies, lengthOfSequence):
+
+    #flatTrialStruct = flattenStructure(trialStructure)
+    trialStruct = convert2dot(lengthOfSequence, trialStructure)
+
     for i in range(len(allStructures)):
-        flatten = flattenStructure(allStructures[i])
-        #check = [flatten.count(element) for element in flatten]
-        #if all(x <= 1 for x in check):
-        if flatTrialStruct == flatten:
+        test = convert2dot(lengthOfSequence, allStructures[i])
+        if trialStruct == test:
             return totalEntropies[i]
     return('Error')
 
-def makeTrialStructures(currentStructure, possibleStems):
+
+
+def trialStructureTest(trial, allStructures, lengthOfSequence):
+    test = convert2dot(lengthOfSequence, trial)
+    for structure in allStructures:
+        if test == convert2dot(lengthOfSequence, structure):
+            return True
+    return False
+
+
+def makeTrialStructures(currentStructure, possibleStems, allStructures, lengthOfSequence):
     trialStructures = []
     trialIndex = []
 
@@ -849,12 +909,14 @@ def makeTrialStructures(currentStructure, possibleStems):
 
         trial = currentStructure.copy()
         trial.append(possibleStems[i][0])
-        trialStructures.append(trial)
-        trialIndex.append(possibleStems[i][1])
+
+        if trialStructureTest(trial, allStructures, lengthOfSequence):
+            trialStructures.append(trial)
+            trialIndex.append(possibleStems[i][1])
     return trialStructures, trialIndex
 
 
-def updateReactionRates(trialStructures, trialIndex, allStructures, totalEntropies, kB=0.0019872):
+def updateReactionRates(trialStructures, trialIndex, allStructures, totalEntropies, lengthOfSequence, kB=0.0019872):
         # this needs to be changed to actually calculate the transition rates to the next stat
         # self.nextPossibleStems[i] = [ stem, index]
         # self.currentStructure = list of stems in the current structure
@@ -864,7 +926,7 @@ def updateReactionRates(trialStructures, trialIndex, allStructures, totalEntropi
     for i in range(len(trialStructures)):
         trial = trialStructures[i]
          # the stem that we want to find# the index of the stem
-        rateOfTrialStructure = findTrialStructureRate(trial, allStructures, totalEntropies)
+        rateOfTrialStructure = findTrialStructureRate(trial, allStructures, totalEntropies, lengthOfSequence)
         if rateOfTrialStructure == 'Error':
             print('Error! Could not find the entropy of the trial structure')
         else:
