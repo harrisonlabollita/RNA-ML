@@ -31,7 +31,7 @@ def calculateStemRates(values, kB, T, kind):
         # we are calculating the rate of breaking a stem
         # exp(- dG/ kB T)
         for i in range(len(values)):
-            rate = np.exp(values[i]/(kB*T))
+            rate = np.exp((-1)*abs(values[i])/(kB*T))
             transitionRates.append([rate, 0, i])
     return transitionRates
 
@@ -68,7 +68,7 @@ def findNewStems(stemsInCurrentStructure, allPossibleStems, allStructures):
     nextPossibleStems = []
     # with the stems in the current structure let's find all of the stems with the same stems in them
     # then we will add the stems that are not in the structure yet as next possible moves
-    if len(stemsInCurrentStructure):
+    if not len(stemsInCurrentStructure):
         return allPossibleStems
 
     for i in range(len(allStructures)):
@@ -77,17 +77,26 @@ def findNewStems(stemsInCurrentStructure, allPossibleStems, allStructures):
 
         # check possible structures that contain stems that are currently in
         # the current structure
-        if all(elem in stemsInCurrentStructure for elem in structure):
-
+        if check(structure, stemsInCurrentStructure):
             # if we found a stem that does contain all of them, we know
             # a possible structure could have these in them
             for j in range(len(structure)):
-
                 if structure[j] not in stemsInCurrentStructure:
-
                     nextPossibleStems.append(allPossibleStems[structure[j]])
     return nextPossibleStems
 
+
+def check(structure, stems):
+
+    count = 0
+
+    for element in structure:
+        if element in stems:
+            count += 1
+    if count == len(stems):
+        return True
+    else:
+        return False
 
 
 
@@ -211,23 +220,22 @@ def makeTrialStructures(currentStructure, possibleStems, allStructures, lengthOf
     return trialStructures, trialIndex
 
 
-def updateReactionRates(trialStructures, trialIndex, allStructures, totalEntropies, stateEntropy, lengthOfSequence, kB=0.0019872):
+def updateReactionRates(trialStructures, trialIndex, allStructures, totalEntropies, stateEntropy, lengthOfSequence):
         # this needs to be changed to actually calculate the transition rates to the next stat
         # self.nextPossibleStems[i] = [ stem, index]
         # self.currentStructure = list of stems in the current structure
         # self.
     updateRates = [] # array of rates
-
+    kB = 0.0019872
     for i in range(len(trialStructures)):
         trial = trialStructures[i]
          # the stem that we want to find# the index of the stem
         deltaS = findTrialStructureRate(trial, allStructures, totalEntropies, lengthOfSequence)
-        deltaS = abs(deltaS - stateEntropy)
-        print(deltaS/kB)
-        if rateOfTrialStructure == 'Error':
+        if  deltaS == 'Error':
             print('Error! Could not find the entropy of the trial structure')
         else:
-            updateRates.append([deltaS/kB), 1, trialIndex[i]])
+            deltaS = abs(deltaS - stateEntropy)
+            updateRates.append([np.exp(deltaS/kB), 1, trialIndex[i]])
 
     return updateRates
 

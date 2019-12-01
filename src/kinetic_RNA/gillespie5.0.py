@@ -129,17 +129,6 @@ class Gillespie:
                         self.totalFlux = kF.calculateTotalFlux(self.nextPossibleRates)
                         self.nextPossibleRates = kF.normalize(self.nextPossibleRates)
 
-                        summ = 0
-                        max = 0.5
-                        for r in self.nextPossibleRates:
-                            if r[0] >= max:
-                                max = r[0]
-
-                            summ += r[0]
-                        print(summ)
-
-                        print(max)
-
                         print('Time: %0.2fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), self.convert2dot(self.currentStructure)))
                         return(self)
         else:
