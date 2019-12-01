@@ -71,6 +71,9 @@ def findNewStems(stemsInCurrentStructure, allPossibleStems, allStructures):
     if not len(stemsInCurrentStructure):
         return allPossibleStems
 
+
+
+
     for i in range(len(allStructures)):
 
         structure = allStructures[i]
@@ -78,6 +81,7 @@ def findNewStems(stemsInCurrentStructure, allPossibleStems, allStructures):
         # check possible structures that contain stems that are currently in
         # the current structure
         if check(structure, stemsInCurrentStructure):
+
             # if we found a stem that does contain all of them, we know
             # a possible structure could have these in them
             for j in range(len(structure)):

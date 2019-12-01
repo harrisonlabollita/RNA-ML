@@ -22,11 +22,10 @@
 import numpy as np
 import helperfunctions as hf
 import RFE_landscape as RFE
-import matplotlib.pyplot as plt
 
 class Gillespie:
 
-    def __init__(self, sequence, frozen, maxTime, writeToFile):
+    def __init__(self, sequence, frozen, maxTime):
 
         # We begin by initializing all the components that we will need throughout the algorithm.
         # This includes all possible stems, structures, entropies, and gibbs free energy.
@@ -108,7 +107,6 @@ class Gillespie:
         # Begin with any frozen contraints that will need to be considered, but we will add this
         # component last
 
-
         # This is our first move!
         if not self.time:
             C = self.compatibilityMatrix #for readability we rename this
@@ -120,9 +118,11 @@ class Gillespie:
             # calculate the transition rates for all the states, this done using the kineticFunctions file.
             self.allRates = hf.calculateStemRates(self.stemEntropies, kB =  0.0019872, T = 310.15, kind = 1)
             self.ratesBreak = hf.calculateStemRates(self.stemGFEnergies, kB = 0.0019872, T = 310.15, kind = 0)
-            self.totalFlux = hf.calculateTotalFlux(self.allRates) # the sum off all the rates
+            self.totalFlux = sum([r[0] for r in self.allRates]) # the sum off all the rates
+            #self.time += abs(np.log(r2))
             self.time += (abs(np.log(r2))/self.totalFlux) # increment the reaction time for next state
             normalizedRates = hf.normalize(self.allRates) # normalize the rates such that they sum to one
+
 
             for i in range(len(normalizedRates)):
                 trial = hf.partialSum(normalizedRates[:i])
@@ -140,7 +140,6 @@ class Gillespie:
                     # the rates corresponding to these moves
 
                     for m in range(len(self.allPossibleStems)):
-
                         if C[i, m] and m != i:
                             self.nextPossibleStems.append([self.allPossibleStems[m], m]) # format of this array will be [stem_m , and m = index of stem from larger array]
 
@@ -162,7 +161,7 @@ class Gillespie:
 
         # update time
             self.time += (abs(np.log(r2))/self.totalFlux)
-
+            #self.time += abs(np.log(r2))
             # find the next move
             for i in range(len(self.nextPossibleRates)):
                 trial = hf.partialSum(self.nextPossibleRates[:i])
@@ -170,7 +169,7 @@ class Gillespie:
                 if trial >= r1:
 
                     if self.nextPossibleRates[i][1]: # this will be true if we have chosen to add a stem
-                        stateEntropy = np.log(self.nextPossibleRates[i][0])
+                        stateEntropy = (0.0019872)* np.log(self.nextPossibleRates[i][0])
                         index = self.nextPossibleRates[i][2] # the index of the stem that we will add
                         nextMove = hf.findStem(index, self.nextPossibleStems)
                         stemIndex = nextMove[1]
@@ -179,7 +178,7 @@ class Gillespie:
                         self.stemsInCurrentStructure.append(stemIndex)
                         print('Time: %0.4fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove[0]), self.convert2dot(self.currentStructure)))
                         # check for new stems that could be compatible with the structure
-                        self.nextPossibleStems = hf.findNewStems(self.stemsInCurrentStructure, self.allPossibleStems2, self.allStructures)
+                        self.nextPossibleStems = hf.findNewStems(self.stemsInCurrentStructure, self.allPossibleStems2, self.allStructures2)
                         trialStructures, trialIndices = hf.makeTrialStructures(self.currentStructure, self.nextPossibleStems, self.allStructures, len(self.sequence))
                         self.nextPossibleRates = hf.updateReactionRates(trialStructures, trialIndices, self.allStructures, self.totalEntropies, stateEntropy, len(self.sequence))
 
@@ -189,39 +188,42 @@ class Gillespie:
                         self.nextPossibleRates = hf.normalize(self.nextPossibleRates)
                         return(self)
 
-                    else: # we have chosen to break a stem
-                            # We will now find the stem to break in our current structure, then populate a list of new
-                            # new stems to consider for the next move.
+                    else:
+                        # we have chosen to break a stem
+                                      # We will now find the stem to break in our current structure, then populate a list of new
+                                      # new stems to consider for the next move.
                         stemIndexToRemove = self.nextPossibleRates[i][2]
                         stemToBreak = hf.findStem(stemIndexToRemove, self.allPossibleStems2)
-                        stateEntropy = np.log(self.nextPossibleRates[i][0])
+                        stateEntropy = (0.0019872) * np.log(self.nextPossibleRates[i][0])
                         for k in range(len(self.stemsInCurrentStructure)): #searching for the stem to break
-
                             if stemIndexToRemove == self.stemsInCurrentStructure[k]:
                                 del self.currentStructure[k]
                                 del self.stemsInCurrentStructure[k]
                                 print('Time: %0.4fs | Broke Stem: %s | Current Structure: %s' %(self.time, str(stemToBreak[0]), self.convert2dot(self.currentStructure)))
 
-                                if not len(self.currentStructure):
+                                if len(self.currentStructure) == 0:
+
                                     self.nextPossibleRates = hf.normalize(self.allRates)
                                     self.nextPossibleStems = self.allPossibleStems2
                                     self.totalFlux = sum([r[0] for r in self.nextPossibleRates])
                                 else:
-
                                     self.nextPossibleStems = hf.findNewStems(self.stemsInCurrentStructure, self.allPossibleStems2, self.allStructures2)
-
                                     trialStructures, trialIndices = hf.makeTrialStructures(self.currentStructure, self.nextPossibleStems, self.allStructures, len(self.sequence))
                                     self.nextPossibleRates = hf.updateReactionRates(trialStructures, trialIndices, self.allStructures, self.totalEntropies, stateEntropy, len(self.sequence))
-
                                     for ind in self.stemsInCurrentStructure:
                                         self.nextPossibleRates.insert(0, hf.findRate(ind, self.ratesBreak))
                                     self.totalFlux = sum([r[0] for r in self.nextPossibleRates])
                                     self.nextPossibleRates = hf.normalize(self.nextPossibleRates)
                                 return(self)
+    def runGillespie(self):
+        # run the gillespie algorithm until we reach maxTime
+        while self.time < self.maxTime:
+            self.MonteCarloStep()
+        return(self.convert2dot(self.currentStructure))
 
 
-G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 1000, writeToFile = False)
 
-while G.time < G.maxTime:
-    print(G.time)
-    G.MonteCarloStep()
+
+G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 30)
+structure = G.runGillespie()
+print(structure)
