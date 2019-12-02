@@ -25,7 +25,7 @@ def calculateStemRates(values, kB, T, kind):
         # we are calculating the rates of forming stems, i.e.,
         # exp(dS/kB)
         for i in range(len(values)):
-            rate = np.exp(values[i])/kB
+            rate = np.exp(abs(values[i]))/kB
             transitionRates.append([rate, 1, i])
     else:
         # we are calculating the rate of breaking a stem
@@ -70,8 +70,6 @@ def findNewStems(stemsInCurrentStructure, allPossibleStems, allStructures):
     # then we will add the stems that are not in the structure yet as next possible moves
     if not len(stemsInCurrentStructure):
         return allPossibleStems
-
-
 
 
     for i in range(len(allStructures)):

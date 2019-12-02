@@ -23,9 +23,12 @@ import numpy as np
 import helperfunctions as hf
 import RFE_landscape as RFE
 
+import matplotlib.pyplot as plt
+import glob, sys, os
+
 class Gillespie:
 
-    def __init__(self, sequence, frozen, maxTime):
+    def __init__(self, sequence, frozen, maxTime, toPrint = True):
 
         # We begin by initializing all the components that we will need throughout the algorithm.
         # This includes all possible stems, structures, entropies, and gibbs free energy.
@@ -52,6 +55,8 @@ class Gillespie:
 
         self.nextPossibleStems = [] #initialize
         self.nextPossibleRates = [] #initialize
+
+        self.toPrint = toPrint
 
     def initialize(self, sequence):
         # See Kimich et. al (https://www.biorxiv.org/content/10.1101/338921v1)
@@ -119,8 +124,8 @@ class Gillespie:
             self.allRates = hf.calculateStemRates(self.stemEntropies, kB =  0.0019872, T = 310.15, kind = 1)
             self.ratesBreak = hf.calculateStemRates(self.stemGFEnergies, kB = 0.0019872, T = 310.15, kind = 0)
             self.totalFlux = sum([r[0] for r in self.allRates]) # the sum off all the rates
-            #self.time += abs(np.log(r2))
-            self.time += (abs(np.log(r2))/self.totalFlux) # increment the reaction time for next state
+            self.time += abs(np.log(r2))
+            #self.time += (abs(np.log(r2))/self.totalFlux) # increment the reaction time for next state
             normalizedRates = hf.normalize(self.allRates) # normalize the rates such that they sum to one
 
 
@@ -133,7 +138,8 @@ class Gillespie:
                     self.currentStructure.append(nextMove)  # append the stem to the current structure
                     self.stemsInCurrentStructure.append(i)  # append the index of this stem into a list to keep track of what stems are coming in and out of current structure
                     # update the user on what move was made
-                    print('Time: %0.4fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), self.convert2dot(self.currentStructure)))
+                    if self.toPrint:
+                        print('Time: %0.4fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove), self.convert2dot(self.currentStructure)))
 
 
                     # we now need to calculate the next set of possible moves and
@@ -160,8 +166,8 @@ class Gillespie:
             r2 = np.random.random()
 
         # update time
-            self.time += (abs(np.log(r2))/self.totalFlux)
-            #self.time += abs(np.log(r2))
+            #self.time += (abs(np.log(r2))/self.totalFlux)
+            self.time += abs(np.log(r2))
             # find the next move
             for i in range(len(self.nextPossibleRates)):
                 trial = hf.partialSum(self.nextPossibleRates[:i])
@@ -176,7 +182,8 @@ class Gillespie:
 
                         self.currentStructure.append(nextMove[0])
                         self.stemsInCurrentStructure.append(stemIndex)
-                        print('Time: %0.4fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove[0]), self.convert2dot(self.currentStructure)))
+                        if self.toPrint:
+                            print('Time: %0.4fs | Added Stem: %s | Current Structure: %s' %(self.time, str(nextMove[0]), self.convert2dot(self.currentStructure)))
                         # check for new stems that could be compatible with the structure
                         self.nextPossibleStems = hf.findNewStems(self.stemsInCurrentStructure, self.allPossibleStems2, self.allStructures2)
                         trialStructures, trialIndices = hf.makeTrialStructures(self.currentStructure, self.nextPossibleStems, self.allStructures, len(self.sequence))
@@ -190,8 +197,8 @@ class Gillespie:
 
                     else:
                         # we have chosen to break a stem
-                                      # We will now find the stem to break in our current structure, then populate a list of new
-                                      # new stems to consider for the next move.
+                        # We will now find the stem to break in our current structure, then populate a list of new
+                        # new stems to consider for the next move.
                         stemIndexToRemove = self.nextPossibleRates[i][2]
                         stemToBreak = hf.findStem(stemIndexToRemove, self.allPossibleStems2)
                         stateEntropy = (0.0019872) * np.log(self.nextPossibleRates[i][0])
@@ -199,7 +206,8 @@ class Gillespie:
                             if stemIndexToRemove == self.stemsInCurrentStructure[k]:
                                 del self.currentStructure[k]
                                 del self.stemsInCurrentStructure[k]
-                                print('Time: %0.4fs | Broke Stem: %s | Current Structure: %s' %(self.time, str(stemToBreak[0]), self.convert2dot(self.currentStructure)))
+                                if self.toPrint:
+                                    print('Time: %0.4fs | Broke Stem: %s | Current Structure: %s' %(self.time, str(stemToBreak[0]), self.convert2dot(self.currentStructure)))
 
                                 if len(self.currentStructure) == 0:
 
@@ -215,15 +223,65 @@ class Gillespie:
                                     self.totalFlux = sum([r[0] for r in self.nextPossibleRates])
                                     self.nextPossibleRates = hf.normalize(self.nextPossibleRates)
                                 return(self)
+
     def runGillespie(self):
         # run the gillespie algorithm until we reach maxTime
         while self.time < self.maxTime:
             self.MonteCarloStep()
         return(self.convert2dot(self.currentStructure))
 
+    def averageGillespie(self):
+        maxIter = 10
+        iter = 0
+        predictions = []
+        while iter < maxIter:
+            structure = self.runGillespie()
+            predictions.append(structure)
+
+        averages = [[pred, predictions.count(pred)] for pred in predictions]
+        max = 0
+        for i in range(len(averages)):
+
+            if averages[i][1] >= max:
+                answer = averages[i][0]
+                max = averages[i][1]
+        return answer
 
 
+def readFile(file):
+    f = open(file, 'r')
+    for i, line in enumerate(f):
+        if i == 1:
+            seq = line.rstrip()
+        if i == 2:
+            dots = line.split(' ')[1].rstrip()
+    return seq, dots
 
-G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 30)
-structure = G.runGillespie()
-print(structure)
+def compareStructs(pred, answer):
+    count = 0
+    for i in range(len(pred)):
+        if pred[i] != answer[i]:
+            count +=1
+    return count
+
+seq_files = glob.glob('/Users/harrisonlabollita/Library/Mobile Documents/com~apple~CloudDocs/Arizona State University/Sulc group/data_set/bad_seq/*')
+
+total_misses = []
+for file in seq_files:
+    seq, dot = readFile(file)
+    G = Gillespie(seq, [], maxTime = 5, toPrint = False)
+    structure = G.runGillespie()
+    mistakes = compareStructs(structure, dot)
+    mistakes /= len(seq)
+    total_misses.append(mistakes)
+
+print('Accuracy:' (total_misses.count(0))/len(total_misses))
+print('Mean:', np.mean(total_misses))
+print('Max:', np.max(total_misses))
+print('Min:', np.max(total_misses))
+
+################################# EXAMPLE ######################################
+#G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 30,toPrint = True)#
+#structure = G.runGillespie()                                                  #
+#print(structure)                                                              #
+################################################################################

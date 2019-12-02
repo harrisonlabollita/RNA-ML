@@ -129,14 +129,12 @@ print(len(incorrect))
 for i in range(len(badlyPredictedSequences)):
     for j in range(len(sequences)):
         if badlyPredictedSequences[i] == sequences[j]:
-    
+
             f = open(directory + str(filenames[j])[:-3] + '_%0.2f.ct' %(bad_incorrect[i]), 'w')
             f.write(str(filenames[j])[:-3] + '\n')
             f.write(str(badlyPredictedSequences[i]) + '\n')
             f.write('Actual: ' + str(bpsCorrepsondingStructures[i]) + '\n')
             f.write('RNAfold: ' + str(RNA.fold(badlyPredictedSequences[i])[0]))
-
-
 
 
 
