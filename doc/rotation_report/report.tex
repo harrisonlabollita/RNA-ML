@@ -101,42 +101,75 @@ Our CNN model achieves similar results to the \cite{10.3389/fgene.2019.00467}, h
 \end{figure}
 
 
-
+\begin{multicols}{2}
 \section{Stem Level Gillespie Algorithm}
-\subsection{Introduction to Gillespie Algorithm}
-In \cite{10.1093/nar/gkv480}, the following alogrithm is presented:
-\begin{enumerate}
-\item Extract the total flux $\Phi$ from the partial sum table.
-\item Choose two random numbers $r_{1}$ and $r_{2}$ on the interval $[0, 1]$.
-\item  Increment the time by $\tau = - \ln(r_{2})/\Phi$.
-\item Identify the first *stem* which satisfies the inequality $$ \sum_{\ell =1} \phi_{\ell} \geq r_{1} \Phi$$ by using our table of reaction rates for each stem. We then recalculate the remainder $\Phi = r_{1} \Phi - \sum_{\ell = 1} \phi_{\ell}$ on the fly.
-\item Once this condition is met we choose this stem to form. We make sure it is compatible with all of the other stems in the current structure. If it is not compatible with the current structure, we remove the incompatible pieces and add our new stem. However, if adding this move requires breaking almost all of the current stems then we do not allow this move to occur.
-\item Go to Step 1 until the the arbitraty cutoff time has been reached.
-\end{enumerate}
 
 \subsection{Stem Level Implementation}
+There are two central approaches when writing a computer program to simulate RNA folding kinetics: base pairs or stems. The first approach considers the transitions from RNA states at the base pair level, which generates a microscopic picture of the RNA folding events \cite{10.1093/nar/gkv480}. The alternative approach is to consider large arrangements of base pairs or stems. The transition between RNA states is then completed via forming or breaking a complete stem rather than single base pairs. In this work, we propose a gillespie algorithm that works at the stem level. We intend for the algorithm to be used for long RNA stands ($>$ 100+ ntds), therefore, the stem level implementation is computationally more desirable than working at the base pair level.
 
+As mentioned above we implement a gillespie algorithm, which is a stochastic simulation alogrithm to perform our RNA folding kinetics. The gillespie algorithm is very popular for simulating chemical reactions.  For a more complete discussion of the gillespie algorithm please see Ref. \cite{erban2007practical}. We will briefly go over our algorithm and additionally, we have provided an illustration of our algorithm in Figure \ref{fig:gill_algo}.
+
+Our algorithm begins by first defining a set of moves and a set of transition rates that correspond to each move. There are two different rates: one for creating a stem, which we calculate from the entropy
+
+\begin{equation}
+\text{Rate of forming stem} = \exp \Big (\frac{ \Delta S}{k_{B}} \Big ),
+\end{equation}
+where $k_{B}$ is the Boltzman constant in the correct units. The entropy term is the sum loop entropy, bond entropy, and duplex entropy for that state. The rate of breaking is given by
+
+\begin{equation}
+\text{Rate of breaking stem} = \exp \Big ( - \frac{ \Delta G}{k_{B} T} \Big ).
+\end{equation}
+
+These rates form a probability distribution from which we can stochastically sample from to choose our next move. Upon transitioning from state $S_{i} \rightarrow S_{j}$ to our next state. We regenerate a new move set and re-calculate the transition rates between the current structure state and all other possible structure states. We have include a diagramtic illustration of our algorithm in Figure \ref{fig:gill_algo}. Referencing the figure, one can see that we begin with a RNA sequence, then find the move set. From here we generate the probability distribution, where the sum of all of the transition rates sum to 1. We generate a random number and find in which been the random number falls. We then choose this move that corresponds to this rate whether it is to break a currently formed stem or form a new stem. We repeat this process until we reach a cutoff time that is set by the user. We experimented with different cutoff times to find a quasi-optimal time to let the algorithm run.
+This completes our description of our stem level gillespie algorithm in the next section we present our results and discussion.
+\end{multicols}
 \begin{figure}[H]
 \centering
-\includegraphics{fig/rna_gillespie_algo}
+\includegraphics[scale = 1.1]{fig/rna_gillespie_algo}
+\caption{Above is an illustration of our algorithm. We begin with a open strand sequence. From here we generate a move set of all possible moves, in this case, all the possible stems that could form. We assign a transition rate from the current state $S_{i}$ to the next state $S_{j}$. We then stochastically choose a move to happen from our probability distribution. We propogate our structure to this next move, then regenerate a move set with new transtion rates. We continue to do this until we have reached our maximum running time. The result is our folded structure. }
+\label{fig:gill_algo}
 \end{figure}
 
-\subsection{Results}
+\begin{figure}[H]
+\begin{small}
+\begin{verbatim}
+Sequence: CGGUCGGAACUCGAUCGGUUGAACUCUAUC
+Time: 0.1945s | Added Stem: [[10, 17], [11, 16]] | Current Structure: ..........((....))............
+Time: 4.4331s | Added Stem: [[5, 29], [6, 28]] | Current Structure: .....((...((....))..........))
+Time: 4.9914s | Added Stem: [[7, 19], [8, 18]] | Current Structure: .....((((.((....))))........))
+Time: 6.2564s | Added Stem: [[1, 24], [2, 23]] | Current Structure: .((..((((.((....))))...))...))
+\end{verbatim}
+\end{small}
+\caption{A sample output from our algorithm.}
+\end{figure}
 
 \begin{multicols}{2}
-\begin{figure}[H]
-\centering
-\includegraphics[width = 0.55\textwidth]{fig/gill_bench}
-\caption{}
-\label{fig:gill}
-\end{figure}
+\subsection{Results and Discussion}
+
+In this section, we present and discuss the benchmark results of our stem level gillespie algoritm and compare them with benchmark results of Vienna RNA program \cite{Lorenz2011}. We tested our algorithm on the second dataset mentioned above, which was derived from the Rfam database. Recall this dataset consisted of approximately 30 variable length RNA sequences.
+
 \begin{figure}[H]
 \centering
 \includegraphics[width = 0.55\textwidth]{fig/v_rna_bench}
-\caption{}
+\caption{To benchmark our performance, we compared our algorithm to a popular RNA secondary structure predictor Vienna RNA \cite{Lorenz2011}. The $x$-axis is the percentage of the structure that we incorrectly predicted. The mean was $10\%$, the worst prediction was $0.57\%$, and the best prediction was $57\%$. }
 \label{fig:vbench}
 \end{figure}
+
+In order to quantify the performance of our algorithm, we first obtain benchmark results on ViennaRNA's performance on our dataset. In Figure \ref{fig:vbench}, we have plotted a histogram of ViennRNA's performance. The histogram shows the percentage of the secondary structure that ViennaRNA predicted incorrectly. We can see that the average error was about $10\%$. The worst prediction was $57\%$ and the best prediction was $0\%$ or $100\%$ correct.
+
+We now use the same data set with the Gillespie algorithm. Again, we have plotted a histogram of our program's performance. We can see from Figure \ref{fig:gill} that on average we predicted $38\%$ of the secondary structure incorrectly. Our best prediction was only $21\%$ incorrect and our worst prediction was $54\%$ incorrect.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width = 0.55\textwidth]{fig/gill_bench}
+\caption{A histogram of the gillespie algorithm's performance. The $x$-axis represents the percentage of the structure that was incorrectly predicted by our algorithm. The mean is $38 \%$, the worst predction  was $54\%$, and the best prediction was $21 \%$.}
+\label{fig:gill}
+\end{figure}
+
+Compared to ViennaRNA our stem level Gillespie algorithm was inferior in performance. However, we have one advantage that ViennaRNA does not. Our algorithm considers pseudoknotted structures. This gives a tremendous advantage when compared to 
 \end{multicols}
+
+
 \section{Conclusion}
 
 \newpage
