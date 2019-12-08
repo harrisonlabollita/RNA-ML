@@ -83,3 +83,4 @@ plt.ylabel('Frequency')
 plt.text(0.4, 3.5, 'Testing on 1000 sequences')
 plt.text(0.4, 3, 'Average: %0.2f' %(np.mean(accuracies)))
 plt.show()
+# This is a comment

@@ -253,6 +253,7 @@ G = Gillespie('GGGGACCCCGCGCACCCGCCAGAGCCCGUUGACCCUUGCUGCCUUCCGGCCCUGGGGGAGUUCAC
 structure = G.runGillespie()
 
 
+
 ################################# EXAMPLE ######################################
 #G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 30,toPrint = True)#
 #structure = G.runGillespie()                                                  #

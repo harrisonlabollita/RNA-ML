@@ -141,7 +141,6 @@ learningRate = [paramsHistory[i][0] for i in range(len(paramsHistory))]
 mometnum = [ paramsHistory[i][1] for i in range(len(paramsHistory))]
 
 
-
 import matplotlib
 matplotlib.rc('text', usetex = True)
 matplotlib.rc('font', **{'family':'serif', 'serif':['Computer Modern Roman, Times']})
