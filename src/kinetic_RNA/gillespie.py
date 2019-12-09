@@ -226,6 +226,7 @@ class Gillespie:
 
     def runGillespie(self):
         # run the gillespie algorithm until we reach maxTime
+        self.MonteCarloStep()
         while self.time < self.maxTime:
             self.MonteCarloStep()
         return(self.convert2dot(self.currentStructure))
@@ -249,13 +250,11 @@ class Gillespie:
 #'CGGUCGGAACUCGAUCGGUUGAACUCUAUC'
 #UGCCUGGCGGCCGUAGCGCGGUGGUCCCACCUGACCCCAUGCCGAACUCAGAAGUGAAACGCCGUAGCGCCGAUGGUAGUGUGGGGUCUCCCCAUGCGAGAGUAGGGAACUGCCAGGCAU
 
-G = Gillespie('GGGGACCCCGCGCACCCGCCAGAGCCCGUUGACCCUUGCUGCCUUCCGGCCCUGGGGGAGUUCACAGGAUGGACGCCGCGCGGGGUCC', [], maxTime = 5,toPrint = True)
-structure = G.runGillespie()
-
-
+#G = Gillespie('GGGGACCCCGCGCACCCGCCAGAGCCCGUUGACCCUUGCUGCCUUCCGGCCCUGGGGGAGUUCACAGGAUGGACGCCGCGCGGGGUCC', [], maxTime = 5,toPrint = True)
+#structure = G.runGillespie()
 
 ################################# EXAMPLE ######################################
-#G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 30,toPrint = True)#
-#structure = G.runGillespie()                                                  #
+G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 1, toPrint = True)#
+structure = G.runGillespie()                                                  #
 #print(structure)                                                              #
 ################################################################################

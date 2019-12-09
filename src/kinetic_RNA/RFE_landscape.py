@@ -859,12 +859,7 @@ class RNALandscape:
                 else: #which structureGraph does it correspond to?
                     allWhichStructureGraph[whichStruct] = Giso[0]
 
-            if whichStruct % 100000 == 0 and whichStruct > 0:
-                myPrintFxn('Calculating free energies: whichStruct = ' + str(whichStruct), self.fileTxt)
-                myPrintFxn('Time elapsed since start of CHECK = ' + str(time.time() - self.checkFxnStartTime), self.fileTxt)
-                #myPrintFxn('', self.fileTxt) #add an extra line for clarity
-        return(bondFECounts, dangling5Count, dangling3Count, allNumVs, allComponentGraphs,
-               structureGraphList, allWhichStructureGraph,unboundButCouldBindCounts)
+        return(bondFECounts, dangling5Count, dangling3Count, allNumVs, allComponentGraphs, structureGraphList, allWhichStructureGraph,unboundButCouldBindCounts)
 
 
     def calculateBondEnergy(self, structure, G):
