@@ -3,7 +3,7 @@
 #################################################################################
 # Author: Harrison LaBollita                                                    #
 # Advisor: Petr Sulc                                                            #
-# Date: November 26, 2016                                                       #
+# Date: December 6, 2019                                                        #
 # Most of calculation is built upon the work of Kimich et. al                   #
 # (https://www.biorxiv.org/content/10.1101/338921v1). The implementation of the #
 # Gillespie algorithm was done following Dykeman                                #
@@ -22,9 +22,6 @@
 import numpy as np
 import helperfunctions as hf
 import RFE_landscape as RFE
-
-import matplotlib.pyplot as plt
-import glob, sys, os
 
 class Gillespie:
 
@@ -57,9 +54,10 @@ class Gillespie:
         self.nextPossibleRates = [] #initialize
 
         self.toPrint = toPrint
+        self.kB = 0.0019872
 
     def initialize(self, sequence):
-        # See Kimich et. al (https://www.biorxiv.org/content/10.1101/338921v1)
+        # See Kimichi et. al (https://www.biorxiv.org/content/10.1101/338921v1)
 
         # Call RNALandscape to initialize all the quantities that we will need throughtout our algorithm
 
@@ -175,7 +173,7 @@ class Gillespie:
                 if trial >= r1:
 
                     if self.nextPossibleRates[i][1]: # this will be true if we have chosen to add a stem
-                        stateEntropy = (0.0019872)* np.log(self.nextPossibleRates[i][0])
+                        stateEntropy = self.kB * np.log(self.nextPossibleRates[i][0])
                         index = self.nextPossibleRates[i][2] # the index of the stem that we will add
                         nextMove = hf.findStem(index, self.nextPossibleStems)
                         stemIndex = nextMove[1]
@@ -201,7 +199,7 @@ class Gillespie:
                         # new stems to consider for the next move.
                         stemIndexToRemove = self.nextPossibleRates[i][2]
                         stemToBreak = hf.findStem(stemIndexToRemove, self.allPossibleStems2)
-                        stateEntropy = (0.0019872) * np.log(self.nextPossibleRates[i][0])
+                        stateEntropy = self.kB * np.log(self.nextPossibleRates[i][0])
                         for k in range(len(self.stemsInCurrentStructure)): #searching for the stem to break
                             if stemIndexToRemove == self.stemsInCurrentStructure[k]:
                                 del self.currentStructure[k]
@@ -247,14 +245,15 @@ class Gillespie:
                 answer = averages[i][0]
                 max = averages[i][1]
         return answer
+
 #'CGGUCGGAACUCGAUCGGUUGAACUCUAUC'
 #UGCCUGGCGGCCGUAGCGCGGUGGUCCCACCUGACCCCAUGCCGAACUCAGAAGUGAAACGCCGUAGCGCCGAUGGUAGUGUGGGGUCUCCCCAUGCGAGAGUAGGGAACUGCCAGGCAU
 
 #G = Gillespie('GGGGACCCCGCGCACCCGCCAGAGCCCGUUGACCCUUGCUGCCUUCCGGCCCUGGGGGAGUUCACAGGAUGGACGCCGCGCGGGGUCC', [], maxTime = 5,toPrint = True)
 #structure = G.runGillespie()
 
-################################# EXAMPLE ######################################
-G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 1, toPrint = True)#
-structure = G.runGillespie()                                                  #
-#print(structure)                                                              #
-################################################################################
+################################# EXAMPLE ########################################
+#G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 1, toPrint = True)#
+#structure = G.runGillespie()                                                    #
+#print(structure)                                                                #
+##################################################################################

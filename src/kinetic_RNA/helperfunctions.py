@@ -4,13 +4,13 @@ import copy
 import scipy
 from scipy import sparse as sp
 
-############################## HELPER FUNCTIONS ################################
-# Functions taken from RFE Landscape and used independuntly from the calculate
-# FE landscapre funciton in the RFE class. Paper can be
-# found at (https://www.biorxiv.org/content/10.1101/338921v1).
-# Most of the comments and descriptions from functions have been removed to increase
-# readability.
 
+################################################################################
+############################## HELPER FUNCTIONS ################################
+# These functions are used in my implementation of the gillespie algorithm to  #
+# make the code cleaner to read.                                               #
+################################################################################
+################################################################################
 
 def calculateTotalFlux(rates):
     totalFlux = 0
@@ -100,39 +100,6 @@ def check(structure, stems):
     else:
         return False
 
-
-
-#def findNewStems(stemsInCurrentStructure, allPossibleStems, C, condition):
-
-    # currentStructure: list of stems in the the current structure
-    # allPossibleStems: list of al possible stems for this sequence
-    # C: matrix containing the compatibility of two stems
-    # stemIndex: the index of the stem we are trying to add
-#    nextPossibleStems = [] # empty array
-#
-#    if condition:
-#        for i in range(len(allPossibleStems)):
-#            for j in range(len(stemsInCurrentStructure)):
-#                if i not in stemsInCurrentStructure:
-#                    if C[i, j] and i !=j:
-#                        nextPossibleStems.append([allPossibleStems[i], i])
-#
-#    else:
-#        for i in range(len(allPossibleStems)):
-#            # pick a stem
-#            if i not in stemsInCurrentStructure:
-#                # if this stem is not already in the structure, we could potentially add it
-#                canAdd = 0
-#                for j in range(len(stemsInCurrentStructure)):
-#                    index = stemsInCurrentStructure[j]
-#                    if C[i, index] and i != index:
-#                        canAdd = 0
-#                    else:
-#                        canAdd +=1
-#                if canAdd == 0:
-#                    nextPossibleStems.append([allPossibleStems[i], i])
-#
-#    return(nextPossibleStems)
 
 def totalEntropyPerStructure(loop, bond, duplex):
     totalEntropy = []
@@ -245,6 +212,16 @@ def findRate(index, rates):
     for i in range(len(rates)):
         if rates[i][2] == index:
             return rates[i]
+
+
+################################################################################
+############################ RFE LANDSCAPE FUNCTIONS ###########################
+# These functions were taken from Kimichi et. al                               #
+# (https://www.biorxiv.org/content/10.1101/338921v1).The purpose of these      #
+# functions are to independently calculate the stem energies and enthalpies at #
+# the very beginning of the calculation.                                       #
+################################################################################
+################################################################################
 
 
 
