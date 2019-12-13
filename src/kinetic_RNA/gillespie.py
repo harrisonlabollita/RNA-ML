@@ -86,23 +86,48 @@ class Gillespie:
         representation = ''
         dotbracket = [0]*len(self.sequence)
         # find the pseudoknots first and add those in the dotbracket notation
+        if len(currentStructure) == 1:
+            for i in range(len(currentStructure)):
+                for j in range(len(currentStructure[i])):
+                    dotbracket[currentStructure[i][j][0]] = 1
+                    dotbracket[currentStructure[i][j][1]] = 2
 
         for i in range(len(currentStructure)):
-            for j in range(len(currentStructure[i])):
-                open = currentStructure[i][j][0]
-                close = currentStructure[i][j][1]
-                dotbracket[open] = 1
-                dotbracket[close] = 2
-        # convert 0's, 1's, and 2's into '.', '(', ')'
+            firstStem = currentStructure[i]
+            for j in range(len(currentStructure)):
+                nextStem = currentStructure[j]
+                if firstStem != nextStem:
+                    for k in range(len(firstStem)):
+                        for l in range(len(nextStem)):
+                            base1 = firstStem[k][0]
+                            base2 = firstStem[k][1]
+                            base3 = nextStem[l][0]
+                            base4 = nextStem[l][1]
+
+                            if not base1 < base3 < base4 < base2:
+                                # then we have a pseudoknot
+                                dotbracket[base1] = 1
+                                dotbracket[base2] = 2
+                                dotbracket[base3] = 3
+                                dotbracket[base4] = 4
+                            else:
+                                dotbracket[base1] = 1
+                                dotbracket[base2] = 2
+                                dotbracket[base3] = 1
+                                dotbracket[base4] = 2
+        # convert 0's, 1's, 2's 3',and 4's into '.', '(', ')', '[' ']'
 
         for element in dotbracket:
             if element == 0:
                 representation += '.'
             elif element == 1:
                 representation += '('
-            else:
+            elif element == 2:
                 representation += ')'
-
+            elif element == 3:
+                representation += '['
+            else:
+                representation += ']'
         return(representation)
 
     def MonteCarloStep(self):
@@ -253,7 +278,7 @@ class Gillespie:
 #structure = G.runGillespie()
 
 ################################# EXAMPLE ########################################
-#G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 1, toPrint = True)#
-#structure = G.runGillespie()                                                    #
+G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 5, toPrint = True)
+structure = G.runGillespie()                                                     #
 #print(structure)                                                                #
 ##################################################################################
