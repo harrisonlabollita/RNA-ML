@@ -91,7 +91,6 @@ class Gillespie:
                 for j in range(len(currentStructure[i])):
                     dotbracket[currentStructure[i][j][0]] = 1
                     dotbracket[currentStructure[i][j][1]] = 2
-
         for i in range(len(currentStructure)):
             firstStem = currentStructure[i]
             for j in range(len(currentStructure)):
@@ -104,7 +103,7 @@ class Gillespie:
                             base3 = nextStem[l][0]
                             base4 = nextStem[l][1]
 
-                            if not base1 < base3 < base4 < base2:
+                            if base1 < base3 < base2 < base4:
                                 # then we have a pseudoknot
                                 dotbracket[base1] = 1
                                 dotbracket[base2] = 2
