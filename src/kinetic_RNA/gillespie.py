@@ -25,13 +25,13 @@ import RFE_landscape as RFE
 
 class Gillespie:
 
-    def __init__(self, sequence, frozen, maxTime, toPrint = True):
+    def __init__(self, sequence, constraints, maxTime, toPrint = True):
 
         # We begin by initializing all the components that we will need throughout the algorithm.
         # This includes all possible stems, structures, entropies, and gibbs free energy.
 
         self.sequence = sequence # sequence that we will fold
-        self.frozen = frozen # if we have a frozen stem that we would like to include in the final calculation
+        self.constraints = constraints # if we have a frozen stem that we would like to include in the final calculation
 
        # STableBPs,             STableStructure,     compatibilityMatrix,       allStructures,                           stemEnergies,      stemEntropies,      totalEntropies
         self.allPossibleStems, self.STableStructure, self.compatibilityMatrix, self.allStructures, self.allStructures2, self.stemEnergies, self.stemEntropies, self.totalEntropies = self.initialize(sequence)
@@ -128,6 +128,17 @@ class Gillespie:
             else:
                 representation += ']'
         return(representation)
+
+    def constraintHandler(self):
+        # function to handle the constraints given by Menghan
+        # discussed the constraints to be a vector of the form [[12, '('], [16, ')'], ... ]
+        # Requirements:
+        # - only allow for moves that satisfy the constraints
+        # - if the move does not satisfy the constraint the script will need to break
+        #   and start over creating a new move
+        return True
+
+
 
     def MonteCarloStep(self):
 
