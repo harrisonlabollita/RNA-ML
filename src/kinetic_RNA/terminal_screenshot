@@ -1,0 +1,26 @@
+[hlabolli@agave2:~/Sulc group/kinetic_RNA]$ ls
+bad_seq/    gillespie.py        __pycache__/      slurm.2706934.err  src.txt         str_test.txt
+execute.sh  helperfunctions.py  RFE_landscape.py  slurm.2706934.out  stress_test.py
+[hlabolli@agave2:~/Sulc group/kinetic_RNA]$ squeue -u hlabolli
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+           2706934    serial execute. hlabolli  R    6:48:32      1 cg17-8
+[hlabolli@agave2:~/Sulc group/kinetic_RNA]$ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
