@@ -288,7 +288,7 @@ class Gillespie:
 #structure = G.runGillespie()
 
 ################################# EXAMPLE ########################################
-G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 5, toPrint = True)
-structure = G.runGillespie()                                                     #
+#G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 5, toPrint = True)
+#structure = G.runGillespie()                                                     #
 #print(structure)                                                                #
 ##################################################################################

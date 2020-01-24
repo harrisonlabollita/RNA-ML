@@ -16,15 +16,33 @@ def readFile(file):
             dots.rstrip()
     return seq, dots
 
-seq_files = glob.glob('/Users/harrisonlabollita/Arizona State University/Sulc group/data_set/bad_seq/*')
+#sequences = '/Users/harrisonlabollita/Arizona State University/Sulc group/data_set/src.txt'
 
+seq_files = glob.glob('/Users/harrisonlabollita/Arizona State University/Sulc group/data_set/bad_seq/*')
+print('Generating output file')
 outputFile = open('str_test.txt', 'w+')
+#with open(sequences, 'r') as file:
+#    for line in file:
+#        seq = line.rstrip()
+#    #seq, dot = readFile(file)
+#        seq_length = len(seq)
+#        print('Starting...%s' %(seq))
+#        start = time.time()
+#        G = gill.Gillespie(seq, [], maxTime = 5, toPrint = False)
+#        structure =G.runGillespie()
+#        stop = time.time()
+#        print('Finished!')
+#        outputFile.write('%d  %0.2f\n' %(seq_length, (stop - start)))
+
 for file in seq_files:
-    seq, dot = readFile(file)
-    seq_length = len(seq)
-    start = time.time()
-    G = gill.Gillespie(seq, [], maxTime = 5, toPrint = False)
-    structure =G.runGillespie()
-    stop = time.time()
-    outputFile.write('%d  %0.2f' %(seq_length, (stop - start)))
+    seq, dots = readFile(file)
+    seqLength = len(seq)
+    if seqLength <= 130:
+        print('Starting....%s' %(file))
+        start = time.time()
+        G = gill.Gillespie(seq, [], maxTime =5, toPrint = False)
+        structure = G.runGillespie()
+        stop = time.time()
+        print('Finished!')
+        outputFile.write('%d %0.2f\n' %(seqLength, (stop -start)))
 

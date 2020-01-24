@@ -33,7 +33,7 @@ import matplotlib.pyplot as plt #for plotting
 class RNALandscape:
 
     def __init__(self, sequences, DNA = [False,False], sequenceFrequencies = [1,1], b = 0.8/0.33, T = 310.15,
-                  vs=0.02, duplexEntropyPenaltyInKB = 0, minBPInStem = 1, numParForLoops = 1,
+                  vs=0.02, duplexEntropyPenaltyInKB = 0, minBPInStem = 3, numParForLoops = 1,
                   storeGraphs = False, makeFigures = False, printProgressUpdate = False,
                   allowPseudoknots = True, minNumStemsInStructure = 0, substems = 'all', frozenBPs = [],
                   toSave = False, tryToLoadVariables = False, maxSizeSTable = 10**4,
