@@ -10,24 +10,34 @@ def getData(filename):
     data = open(path + filename, 'r')
     lengths = []
     times = []
+    times2 = []
+    fraction = []
     for line in data:
         line = line.rstrip()
-        length, t = line.split(' ', 1)
+        length, t, t2 = line.split(' ', 2)
         lengths.append(float(length))
         times.append(float(t))
-    return lengths, times
+        times2.append(float(t2))
+        fraction.append(float(t)/float(t2))
+    return lengths, times, times2, fraction
 
-lengths1, times1 = getData(dataFile1)
-lengths2, times2 = getData(dataFile2)
-plt.figure()
-plt.scatter(lengths1, times1, color = 'red', label = 'BP in stem = 2')
-plt.scatter(lengths2, times2, color = 'blue', label= 'BP in stem = 3')
-plt.title('Stress Test RNA folder')
-plt.xlabel('Length of Sequence (ntds)')
-plt.ylabel('Runtime (s)')
-plt.grid(True, linewidth = 1, linestyle = ':')
-plt.legend(loc = 'best')
-plt.savefig('stressPlots.eps', format = 'eps')
+
+
+lengths1, times1, times12, fraction1  = getData(dataFile1)
+lengths2, times2, times22, fraction2 = getData(dataFile2)
+
+print(np.mean(fraction1))
+print(np.mean(fraction2))
+
+#plt.figure()
+#plt.scatter(lengths1, times1, color = 'red', label = 'BP in stem = 2')
+#plt.scatter(lengths2, times2, color = 'blue', label= 'BP in stem = 3')
+#plt.title('Stress Test RNA folder')
+#plt.xlabel('Length of Sequence (ntds)')
+#plt.ylabel('Runtime (s)')
+#plt.grid(True, linewidth = 1, linestyle = ':')
+#plt.legend(loc = 'best')
+#plt.savefig('stressPlots.eps', format = 'eps')
 #fig, ax = plt.subplots()
 #ax.grid(True, linewidth=1,linestyle =':')
 #ax.scatter(lengths1, times1, color = 'red', label = 'BP in stem = 2')

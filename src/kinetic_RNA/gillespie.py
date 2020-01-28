@@ -22,20 +22,23 @@
 import numpy as np
 import helperfunctions as hf
 import RFE_landscape as RFE
-
+import time
 class Gillespie:
 
-    def __init__(self, sequence, constraints, maxTime, toPrint = True):
+    def __init__(self, sequence, constraints, maxTime, toPrint = True, initTime = True):
 
         # We begin by initializing all the components that we will need throughout the algorithm.
         # This includes all possible stems, structures, entropies, and gibbs free energy.
 
         self.sequence = sequence # sequence that we will fold
         self.constraints = constraints # if we have a frozen stem that we would like to include in the final calculation
-
-       # STableBPs,             STableStructure,     compatibilityMatrix,       allStructures,                           stemEnergies,      stemEntropies,      totalEntropies
-        self.allPossibleStems, self.STableStructure, self.compatibilityMatrix, self.allStructures, self.allStructures2, self.stemEnergies, self.stemEntropies, self.totalEntropies = self.initialize(sequence)
-
+        if initTime:
+           start = time.time()
+           self.allPossibleStems, self.STableStructure, self.compatibilityMatrix, self.allStructures, self.allStructures2, self.stemEnergies, self.stemEntropies, self.totalEntropies = self.initialize(sequence)
+           stop = time.time()
+           self.initializationTime = stop - start
+        else:
+           self.allPossibleStems, self.STableStructure, self.compatibilityMatrix, self.allStructures, self.allStructures2, self.stemEnergies, self.stemEntropies, self.totalEntropies = self.initialize(sequence)
         self.allPossibleStems2 = [ [self.allPossibleStems[i], i] for i in range(len(self.allPossibleStems))]
 
         # need to convert the enthalpy to the gibbs free energy

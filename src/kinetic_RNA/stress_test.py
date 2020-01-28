@@ -16,33 +16,33 @@ def readFile(file):
             dots.rstrip()
     return seq, dots
 
-#sequences = '/Users/harrisonlabollita/Arizona State University/Sulc group/data_set/src.txt'
+sequences = '/Users/harrisonlabollita/Arizona State University/Sulc group/data_set/src.txt'
 
-seq_files = glob.glob('/Users/harrisonlabollita/Arizona State University/Sulc group/data_set/bad_seq/*')
+#seq_files = glob.glob('/Users/harrisonlabollita/Arizona State University/Sulc group/data_set/bad_seq/*')
 print('Generating output file')
 outputFile = open('str_test.txt', 'w+')
-#with open(sequences, 'r') as file:
-#    for line in file:
-#        seq = line.rstrip()
-#    #seq, dot = readFile(file)
-#        seq_length = len(seq)
-#        print('Starting...%s' %(seq))
-#        start = time.time()
-#        G = gill.Gillespie(seq, [], maxTime = 5, toPrint = False)
-#        structure =G.runGillespie()
-#        stop = time.time()
-#        print('Finished!')
-#        outputFile.write('%d  %0.2f\n' %(seq_length, (stop - start)))
-
-for file in seq_files:
-    seq, dots = readFile(file)
-    seqLength = len(seq)
-    if seqLength <= 130:
-        print('Starting....%s' %(file))
+with open(sequences, 'r') as file:
+    for line in file:
+        seq = line.rstrip()
+        seq_length = len(seq)
+        print('Starting...%s' %(seq))
         start = time.time()
-        G = gill.Gillespie(seq, [], maxTime =5, toPrint = False)
-        structure = G.runGillespie()
+        G = gill.Gillespie(seq, [], maxTime = 5, toPrint = False, initTime = True)
+        structure =G.runGillespie()
+        initialTime = G.initializationTime
         stop = time.time()
         print('Finished!')
-        outputFile.write('%d %0.2f\n' %(seqLength, (stop -start)))
+        outputFile.write('%d  %0.2f %0.2f\n' %(seq_length, (stop - start), initialTime))
+
+#for file in seq_files:
+#    seq, dots = readFile(file)
+#    seqLength = len(seq)
+#    if seqLength <= 130:
+#        print('Starting....%s' %(file))
+#        start = time.time()
+#        G = gill.Gillespie(seq, [], maxTime =5, toPrint = False)
+#        structure = G.runGillespie()
+#        stop = time.time()
+#        print('Finished!')
+#        outputFile.write('%d %0.2f\n' %(seqLength, (stop -start)))
 
