@@ -82,7 +82,7 @@ class Gillespie:
         totalEntropies = hf.totalEntropyPerStructure(allLoopEntropies, allBondEntropies, allDuplexEntropies)
 
         return(STableBPs, STableStructure, compatibilityMatrix, allStructures, allStructures2, stemEnergies, stemEntropies, totalEntropies)
-
+    
     def convert2dot(self, currentStructure):
         # Function to convert the notation of the current structure to dot bracket notation
         # Not written to handle pseudoknots yet
