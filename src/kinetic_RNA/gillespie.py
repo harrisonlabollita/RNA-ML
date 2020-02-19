@@ -17,12 +17,11 @@
 # optimized for its ideal use which are longer RNA sequences. However, our
 # algorithm has a significant advantage to all other RNA kinetic folders and that
 # is the ability to handle pseudoknots.
-
-
 import numpy as np
 import helperfunctions as hf
 import RFE_landscape as RFE
 import time
+
 class Gillespie:
 
     def __init__(self, sequence, constraints, maxTime, toPrint = True, initTime = True):
@@ -118,7 +117,6 @@ class Gillespie:
                                 dotbracket[base3] = 1
                                 dotbracket[base4] = 2
         # convert 0's, 1's, 2's 3',and 4's into '.', '(', ')', '[' ']'
-
         for element in dotbracket:
             if element == 0:
                 representation += '.'
@@ -132,14 +130,19 @@ class Gillespie:
                 representation += ']'
         return(representation)
 
-    def constraintHandler(self):
+    def constraintCheck(self):
         # function to handle the constraints given by Menghan
         # discussed the constraints to be a vector of the form [[12, '('], [16, ')'], ... ]
         # Requirements:
         # - only allow for moves that satisfy the constraints
         # - if the move does not satisfy the constraint the script will need to break
         #   and start over creating a new move
+
         return True
+
+    def constraintFixer(self):
+
+        return fixedStructure
 
 
 
@@ -171,6 +174,7 @@ class Gillespie:
                 if trial >= r1:
                     stateEntropy = self.stemEntropies[i]
                     nextMove = self.allPossibleStems[i]
+
                     self.currentStructure.append(nextMove)  # append the stem to the current structure
                     self.stemsInCurrentStructure.append(i)  # append the index of this stem into a list to keep track of what stems are coming in and out of current structure
                     # update the user on what move was made
@@ -188,10 +192,9 @@ class Gillespie:
                     trialStructures, trialIndices = hf.makeTrialStructures(self.currentStructure, self.nextPossibleStems, self.allStructures, len(self.sequence))
                     self.nextPossibleRates = hf.updateReactionRates(trialStructures, trialIndices, self.allStructures, self.totalEntropies, stateEntropy, len(self.sequence))
                     self.nextPossibleRates.insert(0, self.ratesBreak[i])
-
                     self.totalFlux = sum([r[0] for r in self.nextPossibleRates])
-
                     self.nextPossibleRates = hf.normalize(self.nextPossibleRates)
+
                     return(self)
 
         else:
@@ -260,29 +263,36 @@ class Gillespie:
                                     self.nextPossibleRates = hf.normalize(self.nextPossibleRates)
                                 return(self)
 
-    def runGillespie(self):
+    def iterateGillespie(self):
         # run the gillespie algorithm until we reach maxTime
         self.MonteCarloStep()
         while self.time < self.maxTime:
             self.MonteCarloStep()
-        return(self.convert2dot(self.currentStructure))
+        return(self.currentStructure)
 
-    def averageGillespie(self):
-        maxIter = 10
-        iter = 0
-        predictions = []
-        while iter < maxIter:
-            structure = self.runGillespie()
-            predictions.append(structure)
+    def GillespieWithConstraints(self):
+        structure = self.iterateGillespie()
+        if self.constraintCheck(structure):
+            return(self.convert2dot(structure))
+        else:
+            return(self.constraintFixer(structure))
 
-        averages = [[pred, predictions.count(pred)] for pred in predictions]
-        max = 0
-        for i in range(len(averages)):
-
-            if averages[i][1] >= max:
-                answer = averages[i][0]
-                max = averages[i][1]
-        return answer
+    # def averageGillespie(self):
+    #     maxIter = 10
+    #     iter = 0
+    #     predictions = []
+    #     while iter < maxIter:
+    #         structure = self.runGillespie()
+    #         predictions.append(structure)
+    #
+    #     averages = [[pred, predictions.count(pred)] for pred in predictions]
+    #     max = 0
+    #     for i in range(len(averages)):
+    #
+    #         if averages[i][1] >= max:
+    #             answer = averages[i][0]
+    #             max = averages[i][1]
+    #     return answer
 
 #'CGGUCGGAACUCGAUCGGUUGAACUCUAUC'
 #UGCCUGGCGGCCGUAGCGCGGUGGUCCCACCUGACCCCAUGCCGAACUCAGAAGUGAAACGCCGUAGCGCCGAUGGUAGUGUGGGGUCUCCCCAUGCGAGAGUAGGGAACUGCCAGGCAU
@@ -291,7 +301,7 @@ class Gillespie:
 #structure = G.runGillespie()
 
 ################################# EXAMPLE ########################################
-G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 5, toPrint = True, initTime = True)
-structure = G.runGillespie()                                                     #
+#G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 5, toPrint = True, initTime = True)
+#structure = G.runGillespie()                                                     #
 #print(structure)                                                                #
 ##################################################################################
