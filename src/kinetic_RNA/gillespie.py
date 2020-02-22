@@ -185,6 +185,7 @@ class Gillespie:
             return False
 
     def constraintFixer(self, option):
+
         if option == 1:
             stemIndex = self.stemsInCurrentStructure
             for con in self.constraints:
@@ -197,21 +198,23 @@ class Gillespie:
                         if state == '(':
                             if base == pair[0]:
                                 # we have found a stem that works with the constraints
+                                justAdd = True
                                 for s in stemIndex:
                                     if self.compatibilityMatrix[s, index]:
                                         pass
                                     else:
+                                        justAdd = False
+                                if justAdd:
+                                    self.stemsInCurrentStructure.append(index)
+                                    self.currentStructure.append(stem)
+                                else:
+                                    removeStems
                                         # remove the stem that is incompatible with stem that we would like to add
                         elif state == ')':
                             if base == pair[1]:
                                 for s in stemIndex:
                                     if self.compatibilityMatrix[s,index]:
                                         pass
-
-
-
-
-
 
 
         elif option == 2:
