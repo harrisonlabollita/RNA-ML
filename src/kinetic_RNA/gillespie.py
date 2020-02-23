@@ -24,7 +24,7 @@ import time
 
 class Gillespie:
 
-    def __init__(self, sequence, constraints, maxTime, toPrint = True, initTime = True):
+    def __init__(self, sequence, constraints, frozenBPs, maxTime, toPrint = True, initTime = True):
 
         # We begin by initializing all the components that we will need throughout the algorithm.
         # This includes all possible stems, structures, entropies, and gibbs free energy.
@@ -34,11 +34,11 @@ class Gillespie:
 
         if initTime:
            start = time.time()
-           self.allPossibleStems, self.STableStructure, self.compatibilityMatrix, self.allStructures, self.allStructures2, self.stemEnergies, self.stemEntropies, self.totalEntropies = self.initialize(sequence)
+           self.allPossibleStems, self.STableStructure, self.compatibilityMatrix, self.allStructures, self.allStructures2, self.stemEnergies, self.stemEntropies, self.totalEntropies = self.initialize(sequence, frozenBPs)
            stop = time.time()
            self.initializationTime = stop - start
         else:
-           self.allPossibleStems, self.STableStructure, self.compatibilityMatrix, self.allStructures, self.allStructures2, self.stemEnergies, self.stemEntropies, self.totalEntropies = self.initialize(sequence)
+           self.allPossibleStems, self.STableStructure, self.compatibilityMatrix, self.allStructures, self.allStructures2, self.stemEnergies, self.stemEntropies, self.totalEntropies = self.initialize(sequence, frozenBPs)
 
         self.allPossibleStems2 = [[self.allPossibleStems[i], i] for i in range(len(self.allPossibleStems))]
 
@@ -74,7 +74,6 @@ class Gillespie:
                 print(notAllowedConstraints)
 
             else:
-
                 print('All constraints are within the move space!')
 
         # initial starting values for the flux, time, and cutoff
@@ -88,10 +87,10 @@ class Gillespie:
         self.toPrint = toPrint
         self.kB = 0.0019872
 
-    def initialize(self, sequence):
+    def initialize(self, sequence, frozenBPs):
         # See Kimichi et. al (https://www.biorxiv.org/content/10.1101/338921v1)
         # Call RNALandscape to initialize all the quantities that we will need throughtout our algorithm
-        q = RFE.RNALandscape([sequence])
+        q = RFE.RNALandscape([sequence], frozenBPs)
         q.calculateFELandscape()
         sequenceInNumbers = q.sequenceInNumbers
         numStems = q.numStems
@@ -187,35 +186,46 @@ class Gillespie:
     def constraintFixer(self, option):
 
         if option == 1:
-            stemIndex = self.stemsInCurrentStructure
+            # We are going to have to hard code the constraints into the problem
+            # The option that we are going to implement will be two find the compatible stems that contain all of the constraints
+            # then we will fix these constraints and call them frozen stems at this point.
+
+            # 1) Build a list of all of the stems with the constraints
+            stemsWithConstraints = []
             for con in self.constraints:
                 base = con[0]
                 state = con[1]
-                for i in range(len(self.allPossibleStems2)):
-                    stem = self.allPossibleStems2[i][0]
-                    index = self.allPossibleStems2[i][1]
+                for stem in self.allPossibleStems:
                     for pair in stem:
                         if state == '(':
                             if base == pair[0]:
-                                # we have found a stem that works with the constraints
-                                justAdd = True
-                                for s in stemIndex:
-                                    if self.compatibilityMatrix[s, index]:
-                                        pass
-                                    else:
-                                        justAdd = False
-                                if justAdd:
-                                    self.stemsInCurrentStructure.append(index)
-                                    self.currentStructure.append(stem)
-                                else:
-                                    removeStems
-                                        # remove the stem that is incompatible with stem that we would like to add
+                                stemsWithConstraints.append(stem)
                         elif state == ')':
                             if base == pair[1]:
-                                for s in stemIndex:
-                                    if self.compatibilityMatrix[s,index]:
-                                        pass
-
+                                stemsWithConstraints.append(stem)
+            # 2) Find all the stems that are compatible with each other
+            compatibleStems = []
+            for i in range(len(stemsWithConstraints)):
+                stemI = True
+                for j in range(len(stemsWithConstraints)):
+                    if i != j:
+                        if self.compatibilityMatrix[i, j]:
+                            pass
+                        else:
+                            stemI = False
+                if stemI:
+                    compatibleStems.append(stemsWithConstraints[i])
+            # 3) Let the compatibleStems be the frozen base pairs for the calculation
+            # frozenBPs = [[2, 9], [3, 8], [37, 46], [38, 45]]
+            frozenBPs = []
+            for i in range(len(compatibleStems)):
+                stem = compatibleStems[i]
+                for j in range(len(stem)):
+                    pair = stem[j]
+                    frozenBPs.append(pair)
+            # 4) redo the simulation with the frozen base pairs
+            G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], frozenBPs, maxTime = 5, toPrint = True, initTime = False)
+            structure = G.iterateGillespie()
 
         elif option == 2:
             trial = 0
@@ -226,6 +236,7 @@ class Gillespie:
                 else:
                     trial += 1
             print('ERROR: Structure with constraints was not found using option %d' %(option))
+
 
 
     def MonteCarloStep(self):
@@ -379,7 +390,7 @@ class Gillespie:
 #structure = G.runGillespie()
 
 ################################# EXAMPLE ########################################
-G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [[0, '('], [1, '(']], maxTime = 5, toPrint = True, initTime = False)
-structure = G.GillespieWithConstraints(2)                                          #
+G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [[0, '('], [1, '(']], [], maxTime = 5, toPrint = True, initTime = False)
+structure = G.GillespieWithConstraints(1)                                          #
 #print(structure)                                                                #
 ##################################################################################
