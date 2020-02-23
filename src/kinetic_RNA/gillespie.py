@@ -90,7 +90,7 @@ class Gillespie:
     def initialize(self, sequence, frozenBPs):
         # See Kimichi et. al (https://www.biorxiv.org/content/10.1101/338921v1)
         # Call RNALandscape to initialize all the quantities that we will need throughtout our algorithm
-        q = RFE.RNALandscape([sequence], frozenBPs)
+        q = RFE.RNALandscape([sequence], frozenBPs=frozenBPs)
         q.calculateFELandscape()
         sequenceInNumbers = q.sequenceInNumbers
         numStems = q.numStems
@@ -195,31 +195,39 @@ class Gillespie:
             for con in self.constraints:
                 base = con[0]
                 state = con[1]
-                for stem in self.allPossibleStems:
-                    for pair in stem:
+                for s in range(len(self.allPossibleStems2)):
+                    stem = self.allPossibleStems2[s][0]
+                    for p in range(len(stem)):
+                        pair = stem[p]
                         if state == '(':
                             if base == pair[0]:
-                                stemsWithConstraints.append(stem)
+                                stemsWithConstraints.append(self.allPossibleStems2[s])
                         elif state == ')':
                             if base == pair[1]:
-                                stemsWithConstraints.append(stem)
+                                stemsWithConstraints.append(self.allPossibleStems2[s])
             # 2) Find all the stems that are compatible with each other
-            compatibleStems = []
+
+            compatibilityList = []
             for i in range(len(stemsWithConstraints)):
-                stemI = True
+                stemICompatibles = []
                 for j in range(len(stemsWithConstraints)):
                     if i != j:
-                        if self.compatibilityMatrix[i, j]:
-                            pass
-                        else:
-                            stemI = False
-                if stemI:
-                    compatibleStems.append(stemsWithConstraints[i])
+                        I = stemsWithConstraints[i][1]
+                        J = stemsWithConstraints[j][1]
+                        if self.compatibilityMatrix[I, J]:
+                            stemICompatibles.append(stemsWithConstraints[j][0])
+                compatibilityList.append(stemICompatibles)
+
+            longestList = compatibilityList[0]
+            for c in compatibilityList:
+                if len(c) > len(longestList):
+                    longestList = c
+
             # 3) Let the compatibleStems be the frozen base pairs for the calculation
             # frozenBPs = [[2, 9], [3, 8], [37, 46], [38, 45]]
             frozenBPs = []
-            for i in range(len(compatibleStems)):
-                stem = compatibleStems[i]
+            for i in range(len(longestList)):
+                stem = longestList[i]
                 for j in range(len(stem)):
                     pair = stem[j]
                     frozenBPs.append(pair)
@@ -390,7 +398,7 @@ class Gillespie:
 #structure = G.runGillespie()
 
 ################################# EXAMPLE ########################################
-G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [[0, '('], [1, '(']], [], maxTime = 5, toPrint = True, initTime = False)
+G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [[0, '(']], frozenBPs = [], maxTime = 5, toPrint = True, initTime = False)
 structure = G.GillespieWithConstraints(1)                                          #
 #print(structure)                                                                #
 ##################################################################################
