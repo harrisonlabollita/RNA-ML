@@ -72,7 +72,7 @@ class Gillespie:
                     # if okay is never switched to True, then we never found a base pair in the right position so this constraint is not a possible move for our algorithm
                     notAllowedConstraints.append(con)
             if len(notAllowedConstraints):
-                print('WARNING: You have %d constraints that are note feasible!' %(len(notAllowedConstraints)))
+                print('WARNING: You have %d constraints that are not feasible!' %(len(notAllowedConstraints)))
                 print(notAllowedConstraints)
 
             else:
@@ -223,19 +223,21 @@ class Gillespie:
                     longestList = c
             # 3) Let the compatibleStems be the frozen base pairs for the calculation
             # frozenBPs = [[2, 9], [3, 8], [37, 46], [38, 45]]
-            frozenBPs = []
-            for i in range(len(longestList)):
-                stem = longestList[i]
-                for j in range(len(stem)):
-                    pair = stem[j]
-                    frozenBPs.append(pair)
-            # 4) redo the simulation with the frozen base pairs
-            newG = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], frozenBPs, maxTime = 5, toPrint = True, initTime = False)
-            fixedStructure = []
-            if len(newG.allPossibleStems) <= 2:
-                for stem in newG.allPossibleStems:
-                    fixedStructure.append(stem)
-            return(fixedStructure)
+            # frozenBPs = []
+            # for i in range(len(longestList)):
+            #     stem = longestList[i]
+            #     for j in range(len(stem)):
+            #         pair = stem[j]
+            #         frozenBPs.append(pair)
+            # # 4) redo the simulation with the frozen base pairs
+            # newG = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], frozenBPs, maxTime = 5, toPrint = True, initTime = False)
+            # fixedStructure = []
+            # if len(newG.allPossibleStems) <= 2:
+            #     for stem in newG.allPossibleStems:
+            #         fixedStructure.append(stem)
+            # return(fixedStructure)
+            fixedStructure = longestList
+            return(self.convert2dot(fixedStructure))
 
 
         elif option == 2:
@@ -247,6 +249,8 @@ class Gillespie:
                 else:
                     trial += 1
             print('ERROR: Structure with constraints was not found using option %d' %(option))
+            print('WARNING: Using option 1 instead')
+            self.constraintFixer(1)
 
 
 
@@ -402,6 +406,6 @@ class Gillespie:
 
 ################################# EXAMPLE ########################################
 G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [[0, '(']], frozenBPs = [], maxTime = 5, toPrint = True, initTime = False)
-structure = G.GillespieWithConstraints(1)                                          #
+structure = G.GillespieWithConstraints(2)                                          #
 #print(structure)                                                                #
 ##################################################################################
