@@ -17,6 +17,8 @@
 # optimized for its ideal use which are longer RNA sequences. However, our
 # algorithm has a significant advantage to all other RNA kinetic folders and that
 # is the ability to handle pseudoknots.
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 import numpy as np
 import helperfunctions as hf
 import RFE_landscape as RFE
@@ -206,23 +208,19 @@ class Gillespie:
                             if base == pair[1]:
                                 stemsWithConstraints.append(self.allPossibleStems2[s])
             # 2) Find all the stems that are compatible with each other
-
             compatibilityList = []
             for i in range(len(stemsWithConstraints)):
                 stemICompatibles = []
                 for j in range(len(stemsWithConstraints)):
-                    if i != j:
-                        I = stemsWithConstraints[i][1]
-                        J = stemsWithConstraints[j][1]
-                        if self.compatibilityMatrix[I, J]:
-                            stemICompatibles.append(stemsWithConstraints[j][0])
+                    I = stemsWithConstraints[i][1]
+                    J = stemsWithConstraints[j][1]
+                    if self.compatibilityMatrix[I, J]:
+                        stemICompatibles.append(stemsWithConstraints[j][0])
                 compatibilityList.append(stemICompatibles)
-
             longestList = compatibilityList[0]
             for c in compatibilityList:
                 if len(c) > len(longestList):
                     longestList = c
-
             # 3) Let the compatibleStems be the frozen base pairs for the calculation
             # frozenBPs = [[2, 9], [3, 8], [37, 46], [38, 45]]
             frozenBPs = []
@@ -232,8 +230,13 @@ class Gillespie:
                     pair = stem[j]
                     frozenBPs.append(pair)
             # 4) redo the simulation with the frozen base pairs
-            G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], frozenBPs, maxTime = 5, toPrint = True, initTime = False)
-            structure = G.iterateGillespie()
+            newG = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], frozenBPs, maxTime = 5, toPrint = True, initTime = False)
+            fixedStructure = []
+            if len(newG.allPossibleStems) <= 2:
+                for stem in newG.allPossibleStems:
+                    fixedStructure.append(stem)
+            return(fixedStructure)
+
 
         elif option == 2:
             trial = 0

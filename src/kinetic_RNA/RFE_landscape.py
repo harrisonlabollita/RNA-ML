@@ -1,3 +1,4 @@
+# This Python file uses the following encoding: utf-8
 # =============================================================================
 # Things left to do (not urgent so I haven't done them yet):
 # make structure/graph histograms, parallelizing, specialLoops, different vs for the two strands,
