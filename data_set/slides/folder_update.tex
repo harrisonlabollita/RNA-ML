@@ -113,16 +113,56 @@ A schematic of where the mapping function $\mathcal{M}(\mathcal{S})$ will be imp
 \end{tikzpicture}
 \end{figure}
 \end{frame}
-
+\begin{frame}{Mapping function}
+Mapping function features:
+\begin{itemize}
+\item Checks that constraints are within the possible move space; if this condition is not met prints error.
+\item Two mapping features:
+\begin{itemize}
+\item[\textcolor{asu_maroon}{1.}] Re-run algorithm until constraints are satisfied (Max iterations = 1000).
+\item[\textcolor{asu_maroon}{2.}] Find the list of moves that satisfy the constraints enforce these moves to happen.
+\end{itemize}
+{\bf \textcolor{asu_maroon}{Note:}} By enforcing certain moves to exist the move space shrinks to essentially allow one move.
+\end{itemize}
+\end{frame}
 \begin{frame}[fragile]{Mapping function}
-\framesubtitle{Example from Folder}
-\begin{tcolorbox}[colframe = asu_maroon, colback = white, title = Output of Kinetic Folder]
+\framesubtitle{Examples from Folder}
+Constraints are $\mathcal{C} = [[0, (], [1, (]]$
+\begin{tcolorbox}[colframe = asu_maroon, colback = white,title = Correct first try]
 \begin{verbatim}
-+:[[3,17],[4,16],[5,15]]...(((.........)))........
-+:[[10,21],[11,20],[12,19]]...(((....[[[..))).]]].....
--:[[3,17],[4,16],[5,15]]..........(((......)))........
-+:[[3,17],[4,16],[5,15],[6,14]]...((((...[[[.)))).]]]...
+All constraints are within the move space!
++ | [[0, 12], [1, 11], [2, 10]] | (((.......))).....
++ | [[5, 26], [6, 25], [7, 24]] | (((..[[[..)))......]]]
+Structure meets constraints!
 \end{verbatim}
 \end{tcolorbox}
+
 \end{frame}
+
+\begin{frame}[fragile]{Mapping function}
+\framesubtitle{Examples from Folder}
+Constraints are $\mathcal{C} = [[0, (], [1, (]]$
+\begin{tcolorbox}[colframe = asu_maroon, colback = white,title = Option 1]
+\begin{verbatim}
+All constraints are within the move space!
+Structure fails! Using option 1 to fix!
+fixedStructure: (((((((.......))))))).........
+\end{verbatim}
+\end{tcolorbox}
+
+\end{frame}
+
+\begin{frame}[fragile]{Mapping function}
+\framesubtitle{Examples from Folder}
+Constraints are $\mathcal{C} = [[0, (], [1, (]]$
+\begin{tcolorbox}[colframe = asu_maroon, colback = white,title = Option 2]
+\begin{verbatim}
+All constraints are within the move space!
+Structure fails! Using option 2 to fix!
+ERROR: No structure found using option 2
+\end{verbatim}
+\end{tcolorbox}
+
+\end{frame}
+
 \end{document}

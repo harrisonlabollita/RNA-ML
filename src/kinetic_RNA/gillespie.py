@@ -212,11 +212,13 @@ class Gillespie:
             for i in range(len(stemsWithConstraints)):
                 stemICompatibles = []
                 for j in range(len(stemsWithConstraints)):
-                    I = stemsWithConstraints[i][1]
-                    J = stemsWithConstraints[j][1]
-                    if self.compatibilityMatrix[I, J]:
-                        stemICompatibles.append(stemsWithConstraints[j][0])
+                    if i != j:
+                        I = stemsWithConstraints[i][1]
+                        J = stemsWithConstraints[j][1]
+                        if self.compatibilityMatrix[I, J]:
+                            stemICompatibles.append(stemsWithConstraints[j][0])
                 compatibilityList.append(stemICompatibles)
+
             longestList = compatibilityList[0]
             for c in compatibilityList:
                 if len(c) > len(longestList):
@@ -237,20 +239,20 @@ class Gillespie:
             #         fixedStructure.append(stem)
             # return(fixedStructure)
             fixedStructure = longestList
-            return(self.convert2dot(fixedStructure))
+            print(fixedStructure)
+            print(self.convert2dot(fixedStructure))
 
 
         elif option == 2:
             trial = 0
-            while trial <= 100:
+            while trial <= 1000:
                 structure = self.iterateGillespie()
                 if self.constraintCheck():
                     return(self.convert2dot(structure))
                 else:
                     trial += 1
             print('ERROR: Structure with constraints was not found using option %d' %(option))
-            print('WARNING: Using option 1 instead')
-            self.constraintFixer(1)
+
 
 
 
@@ -405,7 +407,7 @@ class Gillespie:
 #structure = G.runGillespie()
 
 ################################# EXAMPLE ########################################
-G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [[0, '(']], frozenBPs = [], maxTime = 5, toPrint = True, initTime = False)
+G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [[0, '('], [1, '(']], frozenBPs = [], maxTime = 5, toPrint = True, initTime = False)
 structure = G.GillespieWithConstraints(2)                                          #
 #print(structure)                                                                #
 ##################################################################################
