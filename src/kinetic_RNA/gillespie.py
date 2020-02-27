@@ -254,7 +254,9 @@ class Gillespie:
             print('ERROR: Structure with constraints was not found using option %d' %(option))
 
 
-
+    def findStarting(self, startingStructure):
+        
+        return structure
 
     def MonteCarloStep(self):
         # This is our first move!
@@ -368,7 +370,14 @@ class Gillespie:
                                     self.nextPossibleRates = hf.normalize(self.nextPossibleRates)
                                 return(self)
 
-    def iterateGillespie(self):
+    def iterateGillespie(self, startingStructure):
+        if startingStructure:
+            self.findStart(startingStructure)
+            self.MonteCarloStep()
+            while self.time < self.maxTime:
+                self.MonteCarloStep()
+                return(self.currentStructure)
+
         # run the gillespie algorithm until we reach maxTime
         self.MonteCarloStep()
         while self.time < self.maxTime:
