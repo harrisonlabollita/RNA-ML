@@ -255,7 +255,31 @@ class Gillespie:
 
 
     def findStarting(self, startingStructure):
-        
+        #input is the structure that we would like to start from it will be in format 
+        #startingStructure = ['(','(', '('....]
+        #Our first step will be to convert this list of strings into a list of base pairs
+        #From here we will find the closest stem(s) in our move set and set the current structure 
+        #equal to this startingstructure. After this is complete we will evolve the structure in time 
+        #as normal.
+        requiremnents = [[i, startingStructure[i]] for i in range(len(startingStructure)) if startingStructure[i] == '.']
+        # search the move space for the stems that match the requirements
+        matchingStems = []
+        for r in requirements:
+            base = r[0]
+            state = r[1]
+            for i in range(len(self.allPossibleStems2)):
+                stem = self.allPossibleStems2[i][0]
+                    for p in range(len(stem)):
+                        pair = stem[p]
+                        if state == '(':
+                            if base == pair[0]:
+                                matchingStems.append(self.allPossibleStems2[s])
+                        elif state == ')':
+                            if base == pair[1]:
+                                matchingStems.append(self.allPossibleStems2[s])
+        # matchingStems is now a list of all the stems that match the structure that we would like to start from. 
+        # At this point we will need to do two things, make sure there are no duplicates in the list and next form choose the maximum number of them
+        # to form our current structure. We are not trying to get it perfect just close enough
         return structure
 
     def MonteCarloStep(self):
