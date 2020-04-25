@@ -70,12 +70,8 @@ def findNewStems(stemsInCurrentStructure, allPossibleStems, allStructures):
     # then we will add the stems that are not in the structure yet as next possible moves
     if not len(stemsInCurrentStructure):
         return allPossibleStems
-
-
     for i in range(len(allStructures)):
-
         structure = allStructures[i]
-
         # check possible structures that contain stems that are currently in
         # the current structure
         if check(structure, stemsInCurrentStructure):
@@ -89,9 +85,7 @@ def findNewStems(stemsInCurrentStructure, allPossibleStems, allStructures):
 
 
 def check(structure, stems):
-
     count = 0
-
     for element in structure:
         if element in stems:
             count += 1
@@ -120,7 +114,6 @@ def structure2stem(structures, listOfStems):
             structure.append(listOfStems[structures[i][j]])
         ListOfStructures.append(structure)
     return ListOfStructures
-
 
 def flattenStructure(structure):
     struct = []
@@ -164,15 +157,12 @@ def findTrialStructureRate(trialStructure, allStructures, totalEntropies, length
             return totalEntropies[i]
     return('Error')
 
-
-
 def trialStructureTest(trial, allStructures, lengthOfSequence):
     test = convert2dot(lengthOfSequence, trial)
     for structure in allStructures:
         if test == convert2dot(lengthOfSequence, structure):
             return True
     return False
-
 
 def makeTrialStructures(currentStructure, possibleStems, allStructures, lengthOfSequence):
     trialStructures = []
@@ -187,7 +177,6 @@ def makeTrialStructures(currentStructure, possibleStems, allStructures, lengthOf
             trialStructures.append(trial)
             trialIndex.append(possibleStems[i][1])
     return trialStructures, trialIndex
-
 
 def updateReactionRates(trialStructures, trialIndex, allStructures, totalEntropies, stateEntropy, lengthOfSequence):
         # this needs to be changed to actually calculate the transition rates to the next stat
