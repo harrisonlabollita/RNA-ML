@@ -26,13 +26,22 @@ import time
 
 class Gillespie:
 
-    def __init__(self, sequence, frozenBPs, maxTime, toPrint = True):
+    def __init__(self, sequence, constraints, frozenBPs, maxTime, toPrint = True, initTime = True):
 
         # We begin by initializing all the components that we will need throughout the algorithm.
         # This includes all possible stems, structures, entropies, and gibbs free energy.
 
         self.sequence = sequence # sequence that we will fold
-        self.allPossibleStems, self.STableStructure, self.compatibilityMatrix, self.allStructures, self.allStructures2, self.stemEnergies, self.stemEntropies, self.totalEntropies = self.initialize(sequence, frozenBPs)
+        self.constraints = constraints # if we have a frozen stem that we would like to include in the final calculation
+
+        if initTime:
+           start = time.time()
+           self.allPossibleStems, self.STableStructure, self.compatibilityMatrix, self.allStructures, self.allStructures2, self.stemEnergies, self.stemEntropies, self.totalEntropies = self.initialize(sequence, frozenBPs)
+           stop = time.time()
+           self.initializationTime = stop - start
+        else:
+           self.allPossibleStems, self.STableStructure, self.compatibilityMatrix, self.allStructures, self.allStructures2, self.stemEnergies, self.stemEntropies, self.totalEntropies = self.initialize(sequence, frozenBPs)
+
         self.allPossibleStems2 = [[self.allPossibleStems[i], i] for i in range(len(self.allPossibleStems))]
 
         # need to convert the enthalpy to the gibbs free energy
@@ -40,6 +49,34 @@ class Gillespie:
         # intialize the current structure arrays
         self.currentStructure = []
         self.stemsInCurrentStructure = []
+
+        # At this point we will check to see if our is within the space
+        if len(self.constraints):
+            # if we have constraints let's check through all of the possible moves to see what if any of the moves are not allowed
+            notAllowedConstraints = []
+
+            for con in self.constraints:
+                base = con[0]
+                state = con[1] # state should be either '(', or ')'
+                okay = False
+                for i in range(len(self.allPossibleStems)):
+                    for pair in self.allPossibleStems[i]:
+                        if state == '(':
+                            if base == pair[0]:
+                                okay = True
+                        elif state == ')':
+                            if base == pair[1]:
+                                okay = True
+
+                if not okay:
+                    # if okay is never switched to True, then we never found a base pair in the right position so this constraint is not a possible move for our algorithm
+                    notAllowedConstraints.append(con)
+            if len(notAllowedConstraints):
+                print('WARNING: You have %d constraints that are not feasible!' %(len(notAllowedConstraints)))
+                print(notAllowedConstraints)
+
+            else:
+                print('All constraints are within the move space!')
 
         # initial starting values for the flux, time, and cutoff
         self.totalFlux = 0
@@ -118,6 +155,132 @@ class Gillespie:
             else:
                 representation += ']'
         return(representation)
+
+    def constraintCheck(self):
+        # function to handle the constraints given by Menghan
+        # discussed the constraints to be a vector of the form [[12, '('], [16, ')'], ... ]
+        # Requirements:
+        # - only allow for moves that satisfy the constraints
+        # - if the move does not satisfy the constraint the script will need to break
+        #   and start over creating a new move
+        structureOkay = True
+        for con in self.constraints:
+            base = con[0]
+            state = con[1] # state should be either '(', or ')'
+            okay = False
+            for stem in self.currentStructure:
+                for pair in stem:
+                    if state == '(':
+                        if base == pair[0]:
+                            okay = True
+                    elif state == ')':
+                        if base == pair[1]:
+                            okay = True
+            if not okay:
+                structureOkay = False
+        if structureOkay:
+            print('Structure meets constraints!')
+            return True
+        else:
+            #print('Not all constraints are met!')
+            return False
+
+    def constraintFixer(self, option):
+
+        if option == 1:
+            # We are going to have to hard code the constraints into the problem
+            # The option that we are going to implement will be two find the compatible stems that contain all of the constraints
+            # then we will fix these constraints and call them frozen stems at this point.
+
+            # 1) Build a list of all of the stems with the constraints
+            stemsWithConstraints = []
+            for con in self.constraints:
+                base = con[0]
+                state = con[1]
+                for s in range(len(self.allPossibleStems2)):
+                    stem = self.allPossibleStems2[s][0]
+                    for p in range(len(stem)):
+                        pair = stem[p]
+                        if state == '(':
+                            if base == pair[0]:
+                                stemsWithConstraints.append(self.allPossibleStems2[s])
+                        elif state == ')':
+                            if base == pair[1]:
+                                stemsWithConstraints.append(self.allPossibleStems2[s])
+            # 2) Find all the stems that are compatible with each other
+            compatibilityList = []
+            for i in range(len(stemsWithConstraints)):
+                stemICompatibles = []
+                for j in range(len(stemsWithConstraints)):
+                    if i != j:
+                        I = stemsWithConstraints[i][1]
+                        J = stemsWithConstraints[j][1]
+                        if self.compatibilityMatrix[I, J]:
+                            stemICompatibles.append(stemsWithConstraints[j][0])
+                compatibilityList.append(stemICompatibles)
+
+            longestList = compatibilityList[0]
+            for c in compatibilityList:
+                if len(c) > len(longestList):
+                    longestList = c
+            # 3) Let the compatibleStems be the frozen base pairs for the calculation
+            # frozenBPs = [[2, 9], [3, 8], [37, 46], [38, 45]]
+            # frozenBPs = []
+            # for i in range(len(longestList)):
+            #     stem = longestList[i]
+            #     for j in range(len(stem)):
+            #         pair = stem[j]
+            #         frozenBPs.append(pair)
+            # # 4) redo the simulation with the frozen base pairs
+            # newG = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], frozenBPs, maxTime = 5, toPrint = True, initTime = False)
+            # fixedStructure = []
+            # if len(newG.allPossibleStems) <= 2:
+            #     for stem in newG.allPossibleStems:
+            #         fixedStructure.append(stem)
+            # return(fixedStructure)
+            fixedStructure = longestList
+            print(fixedStructure)
+            print(self.convert2dot(fixedStructure))
+
+
+        elif option == 2:
+            trial = 0
+            while trial <= 1000:
+                structure = self.iterateGillespie()
+                if self.constraintCheck():
+                    return(self.convert2dot(structure))
+                else:
+                    trial += 1
+            print('ERROR: Structure with constraints was not found using option %d' %(option))
+
+
+    def findStarting(self, startingStructure):
+        #input is the structure that we would like to start from it will be in format 
+        #startingStructure = ['(','(', '('....]
+        #Our first step will be to convert this list of strings into a list of base pairs
+        #From here we will find the closest stem(s) in our move set and set the current structure 
+        #equal to this startingstructure. After this is complete we will evolve the structure in time 
+        #as normal.
+        requiremnents = [[i, startingStructure[i]] for i in range(len(startingStructure)) if startingStructure[i] == '.']
+        # search the move space for the stems that match the requirements
+        matchingStems = []
+        for r in requirements:
+            base = r[0]
+            state = r[1]
+            for i in range(len(self.allPossibleStems2)):
+                stem = self.allPossibleStems2[i][0]
+                    for p in range(len(stem)):
+                        pair = stem[p]
+                        if state == '(':
+                            if base == pair[0]:
+                                matchingStems.append(self.allPossibleStems2[s])
+                        elif state == ')':
+                            if base == pair[1]:
+                                matchingStems.append(self.allPossibleStems2[s])
+        # matchingStems is now a list of all the stems that match the structure that we would like to start from. 
+        # At this point we will need to do two things, make sure there are no duplicates in the list and next form choose the maximum number of them
+        # to form our current structure. We are not trying to get it perfect just close enough
+        return structure
 
     def MonteCarloStep(self):
         # This is our first move!
@@ -231,12 +394,27 @@ class Gillespie:
                                     self.nextPossibleRates = hf.normalize(self.nextPossibleRates)
                                 return(self)
 
-    def runGillespie(self):
+    def iterateGillespie(self, startingStructure):
+        if startingStructure:
+            self.findStart(startingStructure)
+            self.MonteCarloStep()
+            while self.time < self.maxTime:
+                self.MonteCarloStep()
+                return(self.currentStructure)
+
         # run the gillespie algorithm until we reach maxTime
         self.MonteCarloStep()
         while self.time < self.maxTime:
             self.MonteCarloStep()
-        return(self.convert2dot(self.currentStructure))
+        return(self.currentStructure)
+
+    def GillespieWithConstraints(self, option):
+        structure = self.iterateGillespie()
+        if self.constraintCheck():
+            return(self.convert2dot(structure))
+        else:
+            print('Structure does not satisfy constraints using option %d to fix!' %(option))
+            return(self.constraintFixer(option))
 
     # def averageGillespie(self):
     #     maxIter = 10
@@ -262,8 +440,7 @@ class Gillespie:
 #structure = G.runGillespie()
 
 ################################# EXAMPLE ########################################
-
-G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [], maxTime = 5, toPrint = True)
-structure = G.runGillespie()                                           #
+G = Gillespie('CGGUCGGAACUCGAUCGGUUGAACUCUAUC', [[0, '('], [1, '(']], frozenBPs = [], maxTime = 5, toPrint = True, initTime = False)
+structure = G.GillespieWithConstraints(2)                                          #
 #print(structure)                                                                #
 ##################################################################################
